@@ -1,0 +1,14 @@
+FROM mysql:5
+
+COPY ./install.sh /install_scripts/install.sh
+RUN sh /install_scripts/install.sh && rm -rf /install_scripts
+
+ENV MYSQL_ROOT_PASSWORD=password
+ENV TZ=America/New_York
+
+COPY ./orderinfo_schema.sql ./package.json ./REST.js ./Server.js ./utils.js ./start.sh ./test_make_orders.js /iot-server/
+EXPOSE 3000
+WORKDIR /iot-server
+CMD ./start.sh
+
+# docker run -it --name iot -p 3000:3000 iot-server

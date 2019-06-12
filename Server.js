@@ -31,6 +31,14 @@ var bodyParser  = require("body-parser");     //Javascript parser utility
 var rest = require("./REST.js");              //REST services/handler module
 var app  = express();                         //express instance
 
+
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    next();
+});
+
+
 // Modified by CJ - 04/26/2019
 // Import the time utils function.
 var utils = require("./utils.js");

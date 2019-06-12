@@ -27,7 +27,18 @@
 
 var mysql = require("mysql");     //Database
 var utils = require("./utils.js");
+// var http = require('http');
 
+// // notify rec system
+// var options = {
+//   host: 'localhost',
+//   path: '/notify',
+//   port: '5006',
+//   method: 'GET',
+//   agent: false
+// };
+
+var requests = require('request');
 
 function REST_ROUTER(router, connection) {
     var self = this;
@@ -189,6 +200,15 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             if (err) {
                 res.json({ "Error": true, "Message": "Error executing MySQL query" });
             } else {
+                // Send notification to rec system to poll db
+                var notify = http.get(options, (response) => {
+                    console.log("Sent notification with response: " + response.statusCode);
+                });
+
+                notify.on('error', function(e) {
+                    console.log('ERROR: ' + e.message);
+                });
+
                 res.json({ "Error": false, "Message": "User Added !" });
             }
         });
@@ -211,6 +231,25 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             }
         });
     });
+
+
+
+    /***************************************** test *****************************************************/
+    router.get('/send-notification', (request, response) => {
+        requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
+            if (err) {
+                console.log(err);
+            }
+
+            else if (res.statusCode == 200) {
+                console.log("success");
+            }
+
+            response.json("success");
+
+        })
+    })
+    /***************************************** test *****************************************************/
 
 }
 

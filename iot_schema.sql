@@ -19,8 +19,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
   `zipcode` MEDIUMINT NULL,
-  PRIMARY KEY (`customerID`),
-  UNIQUE INDEX `customerID_UNIQUE` (`customerID` ASC) VISIBLE)
+  PRIMARY KEY (`customerID`))
 ENGINE = InnoDB;
 
 
@@ -35,8 +34,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `fulfillTime` TIMESTAMP NULL,
   `customerID` INT NOT NULL,
   PRIMARY KEY (`orderID`),
-  UNIQUE INDEX `id_UNIQUE` (`orderID` ASC) VISIBLE,
-  INDEX `FK_customers_orders_idx` (`customerID` ASC) VISIBLE,
   CONSTRAINT `FK_customers_orders`
     FOREIGN KEY (`customerID`)
     REFERENCES `iot`.`customers` (`customerID`)
@@ -65,7 +62,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`products` (
   `maxPalletQuantity` TINYINT NOT NULL DEFAULT 0,
   `botID` INT NOT NULL,
   PRIMARY KEY (`productID`),
-  INDEX `botFK_idx` (`botID` ASC) VISIBLE,
   CONSTRAINT `FK_bots_products`
     FOREIGN KEY (`botID`)
     REFERENCES `iot`.`bots` (`botID`)
@@ -82,7 +78,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `productID` INT NOT NULL,
   `quantity` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `productID`),
-  INDEX `productFK_idx` (`productID` ASC) VISIBLE,
   CONSTRAINT `FK_orders_orderProducts`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
@@ -107,8 +102,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`pallets` (
   `unloadTime` TIMESTAMP NULL,
   `botID` INT NOT NULL,
   PRIMARY KEY (`palletID`),
-  UNIQUE INDEX `id_UNIQUE` (`palletID` ASC) VISIBLE,
-  INDEX `FK_bots_pallets_idx` (`botID` ASC) VISIBLE,
   CONSTRAINT `FK_bots_pallets`
     FOREIGN KEY (`botID`)
     REFERENCES `iot`.`bots` (`botID`)
@@ -127,8 +120,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderPallets` (
   `productID` INT NOT NULL,
   `quantity` INT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `palletID`, `productID`),
-  INDEX `palletFK_idx` (`palletID` ASC) VISIBLE,
-  INDEX `productFK_idx` (`productID` ASC) VISIBLE,
   CONSTRAINT `FK_orders_orderPallets`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)

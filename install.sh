@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+# testing comments
 apt-get update
 apt-get install -y curl apt-transport-https
 curl -sL https://deb.nodesource.com/setup_10.x | bash -

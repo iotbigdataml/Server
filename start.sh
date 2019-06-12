@@ -11,7 +11,7 @@ done
 
 echo "dump database if not exists..."
 mysql --password=password -e "CREATE DATABASE IF NOT EXISTS iot;"
-mysql --password=password -D iot < orderinfo_schema.sql
+mysql --password=password -D iot < iot_schema.sql
 
 echo "initialize node modules..."
 yarn

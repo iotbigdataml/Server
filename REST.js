@@ -8,14 +8,14 @@
 *   1.0 April 2018 - Initial write of course order server demo (lattanze).
 *
 * Description: This module provides the restful webservices for the Server.js Node server. This module contains GET,
-* POST, and DELETE services.  
+* POST, and DELETE services.
 *
-* Parameters: 
+* Parameters:
 *   router - this is the URL from the client
 *   connection - this is the connection to the database
-*   md5 - This is the md5 hashing/parser... included by convention, but not really used 
+*   md5 - This is the md5 hashing/parser... included by convention, but not really used
 *
-* Internal Methods: 
+* Internal Methods:
 *   router.get("/"... - returns the system version information
 *   router.get("/orders"... - returns a listing of everything in the ws_orderinfo database
 *   router.get("/orders/:order_id"... - returns the data associated with order_id
@@ -28,12 +28,13 @@
 var mysql = require("mysql");     //Database
 var utils = require("./utils.js");
 
+
 function REST_ROUTER(router, connection) {
     var self = this;
     self.handleRoutes(router, connection);
 }
 
-// Here is where we define the routes. Essentially a route is a path taken through the code dependent upon the 
+// Here is where we define the routes. Essentially a route is a path taken through the code dependent upon the
 // contents of the URL
 
 REST_ROUTER.prototype.handleRoutes = function (router, connection) {
@@ -174,7 +175,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     // POST for adding orders
     // req paramdter is the request object - note to get parameters (eg. stuff afer the '?') you must use req.body.param
-    // res parameter is the response object 
+    // res parameter is the response object
 
     router.post("/neworder", function (req, res) {
         console.log("Adding order::", req.body.customer, ",", req.body.red, ",", req.body.blue, ",", req.body.green, ",", req.body.yellow, ",", req.body.black, ",", req.body.white);

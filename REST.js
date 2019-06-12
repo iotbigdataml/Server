@@ -77,8 +77,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/pending", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "SELECT * FROM ?? WHERE ??=?";
-        var table = ["orders", "status", "pending"];
+        var query = "select ??, ??, ??, ?? from ??, ?? where ?? = ?? and ?? = ?;";
+        var table = ["orders.orderID", "status", "productID", "quantity", "orders", "orderProducts", "orders.orderID", "orderProducts.orderID", "status", "pending"];
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
             if (err) {
@@ -166,7 +166,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     // req paramdter is the request object
     // res parameter is the response object
 
-    router.post("/markOrderFilled/:id", function (req, res) {
+    router.get("/markOrderFilled/:id", function (req, res) {
         console.log("Marking fulfilled order ID: ", req.params.id);
         var query = "UPDATE ?? SET ??=?, ??=? WHERE ??=?"
         // var table = ["orders", "pending", false, "filldate", new (Date), "id", req.params.id];

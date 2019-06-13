@@ -33,12 +33,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `loadTime` TIMESTAMP NULL,
   `fulfillTime` TIMESTAMP NULL,
   `customerID` INT NOT NULL,
-  PRIMARY KEY (`orderID`),
-  CONSTRAINT `FK_customers_orders`
-    FOREIGN KEY (`customerID`)
-    REFERENCES `iot`.`customers` (`customerID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+  PRIMARY KEY (`orderID`))
 ENGINE = InnoDB;
 
 

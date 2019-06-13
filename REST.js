@@ -27,18 +27,7 @@
 
 var mysql = require("mysql");     //Database
 var utils = require("./utils.js");
-// var http = require('http');
 
-// // notify rec system
-// var options = {
-//   host: 'localhost',
-//   path: '/notify',
-//   port: '5006',
-//   method: 'GET',
-//   agent: false
-// };
-
-var requests = require('request');
 
 function REST_ROUTER(router, connection) {
     var self = this;
@@ -77,12 +66,12 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/pending", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "select ??, ??, ??, ?? from ??, ?? where ?? = ?? and ?? = ?;";
-        var table = ["orders.orderID", "status", "productID", "quantity", "orders", "orderProducts", "orders.orderID", "orderProducts.orderID", "status", "pending"];
+        var query = "SELECT * FROM ?? WHERE ??=?";
+        var table = ["orders", "status", "pending"];
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
             if (err) {
-                res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                res.json({ "Error": err, "Message": "Error executing MySQL query" });
             } else {
                 res.json({ "Error": false, "Message": "Success", "Orders": rows });
             }
@@ -166,7 +155,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     // req paramdter is the request object
     // res parameter is the response object
 
-    router.get("/markOrderFilled/:id", function (req, res) {
+    router.post("/markOrderFilled/:id", function (req, res) {
         console.log("Marking fulfilled order ID: ", req.params.id);
         var query = "UPDATE ?? SET ??=?, ??=? WHERE ??=?"
         // var table = ["orders", "pending", false, "filldate", new (Date), "id", req.params.id];
@@ -192,24 +181,60 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         console.log("Adding order::", req.body.customer, ",", req.body.red, ",", req.body.blue, ",", req.body.green, ",", req.body.yellow, ",", req.body.black, ",", req.body.white);
         // Modified by CJ - 04/25/2019
         // Use the simulation time to write database.
-        var query = "INSERT INTO ??(??,??,??,??,??,??,??,??,??) VALUES (?,?,?,?,?,?,?,?,?)";
-        var table = ["orders", "customer", "red", "blue", "green", "yellow", "black", "white", "pending", "orderdate",
-            req.body.customer, req.body.red, req.body.blue, req.body.green, req.body.yellow, req.body.black, req.body.white, true, utils.now()];
+
+        var productIDs = [1, 3, 2, 5, 4, 6];
+        var productQtys = [Number(req.body.red), Number(req.body.blue), Number(req.body.green), Number(req.body.yellow), Number(req.body.black), Number(req.body.white)];
+
+        var query = "INSERT INTO ??(??,??) VALUES (?,?)";
+        var table = ["orders", "createTime", "customerID", utils.now(), Number(req.body.customer)];
+
         query = mysql.format(query, table);
-        connection.query(query, function (err, rows) {
+        connection.query(query, function(err, rows, fields) {
+            // if order insert
             if (err) {
-                res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                res.json({ "Error": true, "Message": err });
             } else {
-                // Send notification to rec system to poll db
-                var notify = http.get(options, (response) => {
-                    console.log("Sent notification with response: " + response.statusCode);
-                });
 
-                notify.on('error', function(e) {
-                    console.log('ERROR: ' + e.message);
-                });
+                var query = "SELECT MAX(??) AS ?? FROM ??";
+                var table = ["orderID", "orderID", "orders"];
 
-                res.json({ "Error": false, "Message": "User Added !" });
+                query = mysql.format(query, table);
+                connection.query(query, function(err, result, fields) {
+                    console.log(result);
+                    console.log(result[0]);
+                    console.log(result[0].orderID);
+
+                    if (err) {
+                        res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                    } 
+                    
+                    else {
+
+                        var i;
+                        for (i=0; i<productQtys.length; i++) {
+
+                            var posts = [];
+
+                            if (productQtys[i] > 0) {
+
+                                // posts.push("INSERT INTO orders (orderID, productID, quantity) VALUES (${rows})
+                                
+                                var query = "INSERT INTO ??(??,??,??) VALUES (?,?,?)";
+                                var table = ["orderProducts", "orderID", "productID", "quantity", result[0].orderID, productIDs[i], productQtys[i]];
+
+                                query = mysql.format(query, table);
+                                connection.query(query, function(err, rows, fields) {
+                                    if (err) {
+                                        res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                                    }
+                                });
+                            }
+                        }
+
+                        
+                        res.json({ "Error": false, "Message": "Order submitted", "Users": i });
+                    }
+                });
             }
         });
     });
@@ -232,26 +257,16 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         });
     });
 
-
-
-    /***************************************** test *****************************************************/
-    router.get('/send-notification', (request, response) => {
-        requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
-            if (err) {
-                console.log(err);
-            }
-
-            else if (res.statusCode == 200) {
-                console.log("success");
-            }
-
-            response.json("success");
-
-        })
-    })
-    /***************************************** test *****************************************************/
-
+    async function insertPorts(posts) {
+        for (let post of posts) {
+            await connection.insert(post);
+        }
+    }
 }
+
+
+
+
 
 // The next line just makes this module available... think of it as a kind package statement in Java
 

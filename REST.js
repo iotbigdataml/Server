@@ -272,28 +272,28 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             await connection.insert(post);
         }
     }
-}
 
 
-/***************************************** test *****************************************************/
-router.get('/send-notification', (request, response) => {
-    requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
-        if (err) {
-            console.log(err);
-        }
 
-        else if (res.statusCode == 200) {
-            console.log("success");
-        }
+    /***************************************** test *****************************************************/
+    router.get('/send-notification', (request, response) => {
+        requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
+            if (err) {
+                console.log(err);
+            }
 
-        response.json("success");
+            else if (res.statusCode == 200) {
+                console.log("success");
+            }
+
+            response.json("success");
 
 
+        })
     })
-})
-/***************************************** test *****************************************************/
+    /***************************************** test *****************************************************/
 
-
+}
 // The next line just makes this module available... think of it as a kind package statement in Java
 
 module.exports = REST_ROUTER;

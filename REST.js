@@ -27,7 +27,7 @@
 
 var mysql = require("mysql");     //Database
 var utils = require("./utils.js");
-
+var requests = require('request');
 
 function REST_ROUTER(router, connection) {
     var self = this;
@@ -66,8 +66,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/pending", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "SELECT * FROM ?? WHERE ??=?";
-        var table = ["orders", "status", "pending"];
+        var query = "select ??, ??, ??, ?? from ??, ?? where ?? = ?? and ?? = ?;";
+        var table = ["orders.orderID", "status", "productID", "quantity", "orders", "orderProducts", "orders.orderID", "orderProducts.orderID", "status", "pending"];
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
             if (err) {
@@ -267,15 +267,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         });
     });
 
-    async function insertPorts(posts) {
-        for (let post of posts) {
-            await connection.insert(post);
-        }
-    }
-
-
 
     /***************************************** test *****************************************************/
+
     router.get('/send-notification', (request, response) => {
         requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
             if (err) {
@@ -290,7 +284,14 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
 
         })
-    })
+    });
+
+    async function insertPorts(posts) {
+        for (let post of posts) {
+            await connection.insert(post);
+        }
+    }
+
     /***************************************** test *****************************************************/
 
 }

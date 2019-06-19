@@ -3,7 +3,7 @@
 ## Server Usage
 ### Build the Docker image
 ```
-cd server
+cd Server
 docker build -t iot-server -f DockerFile .
 ```
 If you change the server code or the data schema, you probably need to rebuild the image

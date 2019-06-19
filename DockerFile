@@ -13,4 +13,4 @@ WORKDIR /iot-server
 RUN ["chmod", "+x", "start.sh"]
 CMD ./start.sh
 
-# docker run -it --name iot -p 3000:3000 iot-server
+# docker run -it --name iot -p 3000:3000 -p 3306:3306 iot-server

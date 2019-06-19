@@ -26,7 +26,7 @@ docker exec -it iot node test_make_orders.js
 
 ### Start the server from last time
 ```
-docker start iot
+docker start -i iot
 ```
 
 ### Stop the server

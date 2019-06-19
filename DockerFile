@@ -8,6 +8,7 @@ ENV TZ=America/New_York
 
 COPY ./iot_schema.sql ./package.json ./REST.js ./Server.js ./utils.js ./start.sh ./test_make_orders.js /iot-server/
 EXPOSE 3000
+EXPOSE 3306
 WORKDIR /iot-server
 RUN ["chmod", "+x", "start.sh"]
 CMD ./start.sh

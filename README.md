@@ -13,7 +13,7 @@ If you change the server code or the data schema, you probably need to rebuild t
 
 ### Run the server for the first time
 ```
-docker run -it --name iot -p 3000:3000 iot-server
+docker run -it --name iot -p 3000:3000 -p 3306:3306 iot-server
 ```
 Now you can access the server API through http://localhost:3000/api/.
 

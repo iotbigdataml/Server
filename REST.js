@@ -66,9 +66,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/pending", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "select ??, ??, ??, ?? from ??, ?? where ?? = ?? and ?? = ?;";
-        var table = ["orders.orderID", "status", "productID", "quantity", "orders", "orderProducts", "orders.orderID", "orderProducts.orderID", "status", "pending"];
-        query = mysql.format(query, table);
+        var query = "SELECT op.orderID, p.name, op.quantity FROM orderProducts op JOIN products p ON op.productID = p.productID JOIN orders o ON op.orderID = o.orderID WHERE o.status = 'pending';";
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
@@ -267,6 +265,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         });
     });
 
+    router.post('/replenish', (req, res) => {
+
+    });
 
     /***************************************** test *****************************************************/
 

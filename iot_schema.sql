@@ -1,7 +1,7 @@
 -- MySQL Workbench Forward Engineering
 
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=1;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=1;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
@@ -9,7 +9,7 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `customerID` INT NOT NULL,
-  `firstName` VARCHAR(30) NULL,
+  `firstName` VARCHAR(45) NULL,
   `lastName` VARCHAR(45) NULL,
   `gender` CHAR(1) NULL,
   `dob` DATE NULL,
@@ -29,11 +29,16 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `orderID` INT NOT NULL AUTO_INCREMENT,
   `status` VARCHAR(10) NOT NULL DEFAULT 'pending',
-  `createTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `loadTime` TIMESTAMP NULL,
   `fulfillTime` TIMESTAMP NULL,
   `customerID` INT NOT NULL,
-  PRIMARY KEY (`orderID`))
+  PRIMARY KEY (`orderID`),
+  CONSTRAINT `FK_customers_orders`
+    FOREIGN KEY (`customerID`)
+    REFERENCES `iot`.`customers` (`customerID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -42,7 +47,9 @@ ENGINE = InnoDB;
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`bots` (
   `botID` INT NOT NULL,
-  `channel` INT NOT NULL,
+  `status` VARCHAR(20) NULL,
+  `moving` TINYINT NOT NULL DEFAULT 0,
+  `channel` TINYINT NOT NULL,
   PRIMARY KEY (`botID`))
 ENGINE = InnoDB;
 
@@ -53,14 +60,14 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `iot`.`products` (
   `productID` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(45) NOT NULL,
-  `quantity` INT NOT NULL DEFAULT 0,
-  `maxPalletQuantity` TINYINT NOT NULL DEFAULT 0,
-  `botID` INT NOT NULL,
+  `qtyInStock` INT NOT NULL DEFAULT 0,
+  `assignedBot` INT NOT NULL,
+  `maxBotQty` TINYINT NOT NULL,
   PRIMARY KEY (`productID`),
   CONSTRAINT `FK_bots_products`
-    FOREIGN KEY (`botID`)
+    FOREIGN KEY (`assignedBot`)
     REFERENCES `iot`.`bots` (`botID`)
-    ON DELETE RESTRICT
+    ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
@@ -71,7 +78,8 @@ ENGINE = InnoDB;
 CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
-  `quantity` INT NOT NULL DEFAULT 0,
+  `qtyOrdered` TINYINT NOT NULL DEFAULT 0,
+  `qtyPackaged` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `productID`),
   CONSTRAINT `FK_orders_orderProducts`
     FOREIGN KEY (`orderID`)
@@ -87,49 +95,65 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`pallets`
+-- Table `iot`.`botTrips`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`pallets` (
-  `palletID` INT NOT NULL AUTO_INCREMENT,
-  `status` VARCHAR(10) NOT NULL DEFAULT 'pending',
-  `createTime` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  `loadTime` TIMESTAMP NULL,
-  `unloadTime` TIMESTAMP NULL,
+CREATE TABLE IF NOT EXISTS `iot`.`botTrips` (
+  `botTripID` INT NOT NULL AUTO_INCREMENT,
   `botID` INT NOT NULL,
-  PRIMARY KEY (`palletID`),
-  CONSTRAINT `FK_bots_pallets`
+  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `departureTime` TIMESTAMP NULL,
+  `arrivalTime` TIMESTAMP NULL,
+  `outbound` TINYINT NULL,
+  PRIMARY KEY (`botTripID`),
+  CONSTRAINT `FK_bots_botTrips`
     FOREIGN KEY (`botID`)
     REFERENCES `iot`.`bots` (`botID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
-ENGINE = InnoDB
-COMMENT = '	';
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`orderPallets`
+-- Table `iot`.`orderBotTrips`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`orderPallets` (
+CREATE TABLE IF NOT EXISTS `iot`.`orderBotTrips` (
   `orderID` INT NOT NULL,
-  `palletID` INT NOT NULL,
+  `botTripID` INT NOT NULL,
   `productID` INT NOT NULL,
-  `quantity` INT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`orderID`, `palletID`, `productID`),
-  CONSTRAINT `FK_orders_orderPallets`
+  `qtyOnTrip` TINYINT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`orderID`, `botTripID`, `productID`),
+  CONSTRAINT `FK_orders_orderBotTrips`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
-  CONSTRAINT `FK_pallets_orderPallets`
-    FOREIGN KEY (`palletID`)
-    REFERENCES `iot`.`pallets` (`palletID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
+  CONSTRAINT `FK_botTrips_orderBotTrips`
+    FOREIGN KEY (`botTripID`)
+    REFERENCES `iot`.`botTrips` (`botTripID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE,
   CONSTRAINT `FK_products_orderPallets`
     FOREIGN KEY (`productID`)
     REFERENCES `iot`.`products` (`productID`)
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `iot`.`receivedProducts`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `iot`.`receivedProducts` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `productID` INT NOT NULL,
+  `qtyReceived` INT NOT NULL DEFAULT 0,
+  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  CONSTRAINT `FK_products_receivedProducts`
+    FOREIGN KEY (`productID`)
+    REFERENCES `iot`.`products` (`productID`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
 
@@ -137,12 +161,24 @@ SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS;
 
-INSERT INTO bots VALUES (11, 11);
-INSERT INTO bots VALUES (12, 12);
+INSERT INTO bots (botID, bots.channel) VALUES (11, 11);
+INSERT INTO bots (botID, bots.channel) VALUES (12, 12);
 
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('Red', 8, 11);
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('Green', 18, 11);
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('Blue', 27, 11);
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('Black', 8, 12);
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('Yellow', 11, 12);
-INSERT INTO products (products.name, maxPalletQuantity, botID) VALUES ('White', 28, 12);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Red', 11, 8);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Green', 11, 18);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Blue', 11, 27);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Black', 12, 8);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Yellow', 12, 11);
+INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('White', 12, 28);
+
+LOAD DATA INFILE '/var/lib/mysql-files/users.csv'
+INTO TABLE customers 
+FIELDS TERMINATED BY ','
+LINES TERMINATED BY '\r\n'
+IGNORE 1 LINES
+	(
+		customerID, firstName, lastName, gender, @dob,
+        householdIncome, householdCount, maritalStatus,
+        city, state, zipcode
+    )
+SET dob = STR_TO_DATE(@dob, '%d/%m/%Y');

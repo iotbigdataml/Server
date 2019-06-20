@@ -66,7 +66,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/pending", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "SELECT op.orderID, p.name, op.quantity FROM orderProducts op JOIN products p ON op.productID = p.productID JOIN orders o ON op.orderID = o.orderID WHERE o.status = 'pending';";
+        var query = "SELECT op.orderID, p.name, op.qtyOrdered FROM orderProducts op JOIN products p ON op.productID = p.productID JOIN orders o ON op.orderID = o.orderID WHERE o.status = 'pending';";
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
@@ -119,7 +119,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     router.get("/filled", function (req, res) {
         console.log("Getting all database entries...");
         var query = "SELECT * FROM ?? WHERE ??=?";
-        var table = ["orders", "status", "filled"];
+        var table = ["orders", "status", "shipped"];
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
             if (err) {
@@ -137,7 +137,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     router.get("/filledcustorders/:customer", function (req, res) {
         console.log("Getting orders for: ", req.params.customer);
         var query = "SELECT * FROM ?? WHERE ??=? AND ??=?";
-        var table = ["orders", "customerID", req.params.customer, "status", "filled"];
+        var table = ["orders", "customerID", req.params.customer, "status", "shipped"];
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
             if (err) {
@@ -218,7 +218,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                                 // posts.push("INSERT INTO orders (orderID, productID, quantity) VALUES (${rows})
 
                                 var query = "INSERT INTO ??(??,??,??) VALUES (?,?,?)";
-                                var table = ["orderProducts", "orderID", "productID", "quantity", result[0].orderID, productIDs[i], productQtys[i]];
+                                var table = ["orderProducts", "orderID", "productID", "qtyOrdered", result[0].orderID, productIDs[i], productQtys[i]];
 
                                 query = mysql.format(query, table);
                                 connection.query(query, function (err, rows, fields) {

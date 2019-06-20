@@ -9,8 +9,9 @@ ENV TZ=America/New_York
 COPY ./iot_schema.sql ./package.json ./REST.js ./Server.js ./utils.js ./start.sh ./test_make_orders.js /iot-server/
 COPY ./users.csv /var/lib/mysql-files/
 EXPOSE 3000
+EXPOSE 3306
 WORKDIR /iot-server
 RUN ["chmod", "+x", "start.sh"]
 CMD ./start.sh
 
-# docker run -it --name iot -p 3000:3000 iot-server
+# docker run -it --name iot -p 3000:3000 -p 3306:3306 iot-server

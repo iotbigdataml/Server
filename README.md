@@ -3,7 +3,7 @@
 ## Server Usage
 ### Build the Docker image
 ```
-cd server
+cd Server
 docker build -t iot-server -f DockerFile .
 ```
 If you change the server code or the data schema, you probably need to rebuild the image
@@ -13,7 +13,7 @@ If you change the server code or the data schema, you probably need to rebuild t
 
 ### Run the server for the first time
 ```
-docker run -it --name iot -p 3000:3000 iot-server
+docker run -it --name iot -p 3000:3000 -p 3306:3306 iot-server
 ```
 Now you can access the server API through http://localhost:3000/api/.
 
@@ -26,7 +26,7 @@ docker exec -it iot node test_make_orders.js
 
 ### Start the server from last time
 ```
-docker start iot
+docker start -i iot
 ```
 
 ### Stop the server

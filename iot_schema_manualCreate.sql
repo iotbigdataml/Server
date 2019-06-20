@@ -30,8 +30,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
   `zipcode` MEDIUMINT NULL,
-  PRIMARY KEY (`customerID`),
-  UNIQUE INDEX `customerID_UNIQUE` (`customerID` ASC) VISIBLE)
+  PRIMARY KEY (`customerID`))
 ENGINE = InnoDB;
 
 
@@ -46,8 +45,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `fulfillTime` TIMESTAMP NULL,
   `customerID` INT NOT NULL,
   PRIMARY KEY (`orderID`),
-  UNIQUE INDEX `id_UNIQUE` (`orderID` ASC) VISIBLE,
-  INDEX `FK_customers_orders_idx` (`customerID` ASC) VISIBLE,
   CONSTRAINT `FK_customers_orders`
     FOREIGN KEY (`customerID`)
     REFERENCES `iot`.`customers` (`customerID`)
@@ -64,8 +61,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`bots` (
   `status` VARCHAR(20) NULL,
   `moving` TINYINT NOT NULL DEFAULT 0,
   `channel` TINYINT NOT NULL,
-  PRIMARY KEY (`botID`),
-  UNIQUE INDEX `botID_UNIQUE` (`botID` ASC) VISIBLE)
+  PRIMARY KEY (`botID`))
 ENGINE = InnoDB;
 
 
@@ -79,8 +75,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`products` (
   `assignedBot` INT NOT NULL,
   `maxBotQty` TINYINT NOT NULL,
   PRIMARY KEY (`productID`),
-  UNIQUE INDEX `productID_UNIQUE` (`productID` ASC) VISIBLE,
-  INDEX `FK_bots_products_idx` (`assignedBot` ASC) VISIBLE,
   CONSTRAINT `FK_bots_products`
     FOREIGN KEY (`assignedBot`)
     REFERENCES `iot`.`bots` (`botID`)
@@ -96,9 +90,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOrdered` TINYINT NOT NULL DEFAULT 0,
-  `qtyPackaged` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `productID`),
-  INDEX `productFK_idx` (`productID` ASC) VISIBLE,
   CONSTRAINT `FK_orders_orderProducts`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
@@ -123,8 +115,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`botTrips` (
   `arrivalTime` TIMESTAMP NULL,
   `outbound` TINYINT NULL,
   PRIMARY KEY (`botTripID`),
-  INDEX `FK_bots_botTrips_idx` (`botID` ASC) VISIBLE,
-  UNIQUE INDEX `botTripID_UNIQUE` (`botTripID` ASC) VISIBLE,
   CONSTRAINT `FK_bots_botTrips`
     FOREIGN KEY (`botID`)
     REFERENCES `iot`.`bots` (`botID`)
@@ -134,16 +124,14 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`orderBotTrips`
+-- Table `iot`.`botTripOrders`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`orderBotTrips` (
-  `orderID` INT NOT NULL,
+CREATE TABLE IF NOT EXISTS `iot`.`botTripOrders` (
   `botTripID` INT NOT NULL,
+  `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOnTrip` TINYINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`orderID`, `botTripID`, `productID`),
-  INDEX `productFK_idx` (`productID` ASC) VISIBLE,
-  INDEX `FK_botTrips_orderBotTrips_idx` (`botTripID` ASC) VISIBLE,
+  PRIMARY KEY (`botTripID`, `orderID`, `productID`),
   CONSTRAINT `FK_orders_orderBotTrips`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
@@ -155,25 +143,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderBotTrips` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `FK_products_orderPallets`
-    FOREIGN KEY (`productID`)
-    REFERENCES `iot`.`products` (`productID`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `iot`.`receivedProducts`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`receivedProducts` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `productID` INT NOT NULL,
-  `qtyReceived` INT NOT NULL DEFAULT 0,
-  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  INDEX `FK_products_receivedProducts_idx` (`productID` ASC) VISIBLE,
-  UNIQUE INDEX `id_UNIQUE` (`id` ASC) VISIBLE,
-  CONSTRAINT `FK_products_receivedProducts`
     FOREIGN KEY (`productID`)
     REFERENCES `iot`.`products` (`productID`)
     ON DELETE CASCADE
@@ -194,11 +163,6 @@ INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Blue', 11,
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Black', 12, 8);
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Yellow', 12, 11);
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('White', 12, 28);
-
--- in order to manually create this database the users.csv must be placed into a specific 
--- directory that is provided permissions by default for uploading csv's into a MySql database.
--- The code below loads the users.csv from the required directory within my (Benjamin's) machine. 
--- Run the following command to determine that directory: SHOW VARIABLES LIKE 'secure_file_priv';
 
 LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/users.csv'
 INTO TABLE customers 

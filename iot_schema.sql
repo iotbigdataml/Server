@@ -79,7 +79,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOrdered` TINYINT NOT NULL DEFAULT 0,
-  `qtyPackaged` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `productID`),
   CONSTRAINT `FK_orders_orderProducts`
     FOREIGN KEY (`orderID`)
@@ -114,14 +113,14 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`orderBotTrips`
+-- Table `iot`.`botTripOrders`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`orderBotTrips` (
-  `orderID` INT NOT NULL,
+CREATE TABLE IF NOT EXISTS `iot`.`botTripOrders` (
   `botTripID` INT NOT NULL,
+  `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOnTrip` TINYINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`orderID`, `botTripID`, `productID`),
+  PRIMARY KEY (`botTripID`, `orderID`, `productID`),
   CONSTRAINT `FK_orders_orderBotTrips`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
@@ -133,23 +132,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderBotTrips` (
     ON DELETE CASCADE
     ON UPDATE CASCADE,
   CONSTRAINT `FK_products_orderPallets`
-    FOREIGN KEY (`productID`)
-    REFERENCES `iot`.`products` (`productID`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `iot`.`receivedProducts`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`receivedProducts` (
-  `id` INT NOT NULL AUTO_INCREMENT,
-  `productID` INT NOT NULL,
-  `qtyReceived` INT NOT NULL DEFAULT 0,
-  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `FK_products_receivedProducts`
     FOREIGN KEY (`productID`)
     REFERENCES `iot`.`products` (`productID`)
     ON DELETE CASCADE

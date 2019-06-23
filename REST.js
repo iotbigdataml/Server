@@ -60,13 +60,27 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         res.json(utils.getConfig());
     });
 
-    // GET for /pending specifier - returns all pending orders currently stored in the database
+    // GET for /orders specifier - returns all pending orders currently stored in the database
     // req paramdter is the request object
     // res parameter is the response object
+    // by default, pending orders are returned
 
-    router.get("/pending", function (req, res) {
+    router.get("/orders/:status?", function (req, res) {
         console.log("Getting all database entries...");
-        var query = "SELECT op.orderID, p.name, op.qtyOrdered FROM orderProducts op JOIN products p ON op.productID = p.productID JOIN orders o ON op.orderID = o.orderID WHERE o.status = 'pending';";
+        
+        if (req.params.status) {
+            var query = `SELECT op.orderID, p.productID, op.qtyOrdered, o.status  
+                        FROM orderProducts op 
+                        JOIN products p ON op.productID = p.productID 
+                        JOIN orders o ON op.orderID = o.orderID 
+                        WHERE o.status = '${req.params.status}';`;
+        } else {
+            var query = `SELECT op.orderID, p.productID, op.qtyOrdered, o.status 
+                        FROM orderProducts op 
+                        JOIN products p ON op.productID = p.productID 
+                        JOIN orders o ON op.orderID = o.orderID;`;
+        }
+        
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
@@ -75,6 +89,81 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             }
         });
     });
+
+    // POST to update order status
+    router.post('/orders/update/:orderID', (req, res) => {
+        var query = `UPDATE orders 
+                    SET status = '${req.body.status}' 
+                    WHERE orderID = ${req.params.orderID}`;
+        
+        connection.query(query, (err, rows) => {
+            if (err) {
+                res.json({ "Error": err, "Message": "Error executing MySQL query" });
+            } else {
+                if (req.body.status == "loaded") {
+                    var query = `UPDATE ?? 
+                                SET ?? = COALESCE(??, ?) WHERE ?? = ?`;
+                    var table = ["orders", "loadTime", "loadTime", utils.now(), "orderID", req.params.orderID];
+                    
+                    query = mysql.format(query, table);
+                    
+                    connection.query(query, (err, rows) => {
+                        if (err) {
+                            res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                        } else {
+                            res.json({ "Error": false, "Message": "Success" });
+                        }
+                    });
+                } else if (req.body.status == "shipped") {
+                    var query = `UPDATE ?? 
+                                SET ?? = ? WHERE ?? = ?`;
+                    var table = ["orders", "fulfillTime", utils.now(), "orderID", req.params.orderID];
+
+                    query = mysql.format(query, table);
+
+                    connection.query(query, (err, rows) => {
+                        if (err) {
+                            res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                        } else {
+                            res.json({ "Error": false, "Message": "Success" });
+                        }
+                    });
+                } else if (req.body.status == "returned") {
+                    var query = `SELECT productID, qtyOrdered 
+                                FROM orderProducts 
+                                WHERE orderID = '${req.params.orderID}';`;
+                    connection.query(query, (err, rows) => {
+                        if (err) {
+                            res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                        } else {
+                            errors = [];
+                            rows.forEach(element => {
+                                console.log(element);
+                                var query = "UPDATE products SET qtyInStock = qtyInStock + " + Number(element.qtyOrdered) + " WHERE productID = " + element.productID;
+                                connection.query(query, (err, rows) => {
+                                    if (err) {
+                                        errors.push(err);
+                                    }
+                                });
+                            });
+                            if (errors.length > 0) {
+                                res.json({
+                                    "errors": errors
+                                })
+                            } else {
+                                res.json({
+                                    "status": "Success!"
+                                })
+                            }
+                        }
+                    })
+                } else {
+                    res.json({ "Error": false, "Message": "Success" });
+                }
+            }
+        })
+    })
+
 
     // GET for /pending/id specifier - returns the pending order for the provided order ID
     // req paramdter is the request object
@@ -159,7 +248,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         // var table = ["orders", "pending", false, "filldate", new (Date), "id", req.params.id];
         // Modified by CJ - 04/25/2019
         // Use the simulation time to write database.
-        var table = ["orders", "status", "filled", "fulfillTime", utils.now(), "orderID", req.params.id];
+        var table = ["orders", "status", "shipped", "fulfillTime", utils.now(), "orderID", req.params.id];
 
         query = mysql.format(query, table);
         connection.query(query, function (err, rows) {
@@ -179,7 +268,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         console.log("Adding order::", req.body.customer, ",", req.body.red, ",", req.body.blue, ",", req.body.green, ",", req.body.yellow, ",", req.body.black, ",", req.body.white);
         // Modified by CJ - 04/25/2019
         // Use the simulation time to write database.
-
+        console.log(req.body);
         var productIDs = [1, 3, 2, 5, 4, 6];
         var productQtys = [Number(req.body.red), Number(req.body.blue), Number(req.body.green), Number(req.body.yellow), Number(req.body.black), Number(req.body.white)];
 
@@ -187,6 +276,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var table = ["orders", "createTime", "customerID", utils.now(), Number(req.body.customer)];
 
         query = mysql.format(query, table);
+
+        console.log(query);
+
         connection.query(query, function (err, rows, fields) {
             // if order insert
             if (err) {
@@ -197,13 +289,16 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 var table = ["orderID", "orderID", "orders"];
 
                 query = mysql.format(query, table);
+
+                console.log(query);
+
                 connection.query(query, function (err, result, fields) {
                     console.log(result);
                     console.log(result[0]);
                     console.log(result[0].orderID);
 
                     if (err) {
-                        res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                        res.json({ "Error": err, "Message": "Error executing MySQL query" });
                     }
 
                     else {
@@ -221,16 +316,23 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                                 var table = ["orderProducts", "orderID", "productID", "qtyOrdered", result[0].orderID, productIDs[i], productQtys[i]];
 
                                 query = mysql.format(query, table);
+
+                                console.log(query);
+
                                 connection.query(query, function (err, rows, fields) {
                                     if (err) {
-                                        res.json({ "Error": true, "Message": "Error executing MySQL query" });
+                                        res.json({ "Error": err, "Message": "Error executing MySQL query" });
                                     }
                                 });
                             }
                         }
 
 
-                        requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
+                        requests(
+                            {
+                                method: 'POST',
+                                uri: 'http://127.0.0.1:5006/notify/' + result[0].orderID
+                            }, (err, res, body) => {
                             if (err) {
                                 console.log(err);
                             }
@@ -238,7 +340,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                             else if (res.statusCode == 200) {
                                 console.log("Successfully notified rec system of order");
                             }
-                        })
+                        });
 
                         res.json({ "Error": false, "Message": "Order submitted", "Users": i });
                     }
@@ -272,8 +374,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     router.post("/products/update/:productID", (req, res) => {
         console.log("Updating inventory for product: " + req.params.productID);
         var query = "UPDATE products SET qtyInStock = qtyInStock + "+ Number(req.body.quantity) +" WHERE productID = " + req.params.productID;
-        //UPDATE products SET qtyInStock = value WHERE productID = [productID]
-        // Modified by CJ - 04/25/2019
        
         console.log(query);
         connection.query(query, function (err, rows) {

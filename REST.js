@@ -322,6 +322,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                                 connection.query(query, function (err, rows, fields) {
                                     if (err) {
                                         res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                                        return;
                                     }
                                 });
                             }
@@ -331,7 +332,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                         requests(
                             {
                                 method: 'POST',
-                                uri: 'http://127.0.0.1:5006/notify/',
+                                uri: 'http://127.0.0.1:5006/notify',
                                 body: {
                                     "orderID": result[0].orderID
                                 },
@@ -375,7 +376,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.post("/products/update/:productID", (req, res) => {
         console.log("Updating inventory for product: " + req.params.productID);
-        var query = "UPDATE products SET qtyInStock = qtyInStock + "+ Number(req.body.quantity) +" WHERE productID = " + req.params.productID;
+        var query = "UPDATE products SET qtyInStock = qtyInStock + " + Number(req.body.quantity) + " WHERE productID = " + req.params.productID;
        
         console.log(query);
         connection.query(query, function (err, rows) {

@@ -331,13 +331,15 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                         requests(
                             {
                                 method: 'POST',
-                                uri: 'http://127.0.0.1:5006/notify/' + result[0].orderID
+                                uri: 'http://127.0.0.1:5006/notify/',
+                                body: {
+                                    "orderID": result[0].orderID
+                                },
+                                json: true
                             }, (err, res, body) => {
                             if (err) {
                                 console.log(err);
-                            }
-
-                            else if (res.statusCode == 200) {
+                            } else if (res.statusCode == 200) {
                                 console.log("Successfully notified rec system of order");
                             }
                         });

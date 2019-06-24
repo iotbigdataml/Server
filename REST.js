@@ -160,7 +160,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                             res.json({ "Error": false, "Message": "Success" });
                         }
                     });
-                } else if (req.body.status == "returned") {
+                } else if (req.body.status == "returned" && req.body.loaded) {
+                    console.log("\n\nReplenishing order\n\n");
                     var query = `SELECT productID, qtyOrdered 
                                 FROM orderProducts 
                                 WHERE orderID = '${req.params.orderID}';`;

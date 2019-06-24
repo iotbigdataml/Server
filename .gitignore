@@ -1,2 +1,4 @@
 node_modules
 mysql.log
+simulation_time.json
+*.bak

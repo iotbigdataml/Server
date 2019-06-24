@@ -30,17 +30,17 @@ var mysql   = require("mysql");               //Database
 var bodyParser  = require("body-parser");     //Javascript parser utility
 var rest = require("./REST.js");              //REST services/handler module
 var app  = express();                         //express instance
-var cors = require('cors');
+// var cors = require('cors');
 
 // CORS Support
-// app.use(function(req, res, next) {
-//     res.header("Access-Control-Allow-Origin", "*");
-//     res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
-//     res.header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
-//     next();
-// });
+app.use(function(req, res, next) {
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+    res.header("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS");
+    next();
+});
 
-app.use(cors({origin:true, credentials: true}));
+// app.use(cors({origin:true, credentials: true}));
 
 // Modified by CJ - 04/26/2019
 // Import the time utils function.

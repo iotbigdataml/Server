@@ -67,7 +67,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.get("/orders/:status?", function (req, res) {
         console.log("Getting all database entries...");
-        
+
         if (req.params.status) {
             var query = `SELECT op.orderID, p.productID, op.qtyOrdered, o.status  
                         FROM orderProducts op 
@@ -80,7 +80,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                         JOIN products p ON op.productID = p.productID 
                         JOIN orders o ON op.orderID = o.orderID;`;
         }
-        
+
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
@@ -95,7 +95,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = `UPDATE orders 
                     SET status = '${req.body.status}' 
                     WHERE orderID = ${req.params.orderID}`;
-        
+
         connection.query(query, (err, rows) => {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
@@ -104,14 +104,46 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     var query = `UPDATE ?? 
                                 SET ?? = COALESCE(??, ?) WHERE ?? = ?`;
                     var table = ["orders", "loadTime", "loadTime", utils.now(), "orderID", req.params.orderID];
-                    
+
                     query = mysql.format(query, table);
-                    
+
                     connection.query(query, (err, rows) => {
                         if (err) {
                             res.json({ "Error": err, "Message": "Error executing MySQL query" });
                         } else {
-                            res.json({ "Error": false, "Message": "Success" });
+                            var query = `SELECT productID, qtyOrdered 
+                                        FROM orderProducts 
+                                        WHERE orderID = '${req.params.orderID}';`;
+                            connection.query(query, (err, rows) => {
+                                if (err) {
+                                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                                } else {
+                                    errors = [];
+                                    rows.forEach(element => {
+                                        console.log(element);
+                                        var query = "UPDATE ?? SET ?? = (?? - ?) WHERE ?? = ?";
+                                        var table = ["products", "qtyInStock", "qtyInStock", parseInt(element.qtyOrdered), "productID", element.productID];
+                                        query = mysql.format(query, table);
+                                        console.log("\n\n\n" + query + "\n\n\n");
+                                        connection.query(query, (err, rows) => {
+                                            if (err) {
+                                                errors.push(err);
+                                            }
+                                        });
+                                    });
+                                    if (errors.length > 0) {
+                                        res.json({
+                                            "errors": errors
+                                        })
+                                    } else {
+                                        res.json({
+                                            "status": "Success!"
+                                        })
+                                    }
+                                }
+                            })
+
+                            // res.json({ "Error": false, "Message": "Success" });
                         }
                     });
                 } else if (req.body.status == "shipped") {
@@ -329,21 +361,21 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                         }
 
 
-                        requests(
-                            {
-                                method: 'POST',
-                                uri: 'http://127.0.0.1:5006/notify',
-                                body: {
-                                    "orderID": result[0].orderID
-                                },
-                                json: true
-                            }, (err, res, body) => {
-                            if (err) {
-                                console.log(err);
-                            } else if (res.statusCode == 200) {
-                                console.log("Successfully notified rec system of order");
-                            }
-                        });
+                        // requests(
+                        //     {
+                        //         method: 'POST',
+                        //         uri: 'http://127.0.0.1:5006/notify',
+                        //         body: {
+                        //             "orderID": result[0].orderID
+                        //         },
+                        //         json: true
+                        //     }, (err, res, body) => {
+                        //     if (err) {
+                        //         console.log(err);
+                        //     } else if (res.statusCode == 200) {
+                        //         console.log("Successfully notified rec system of order");
+                        //     }
+                        // });
 
                         res.json({ "Error": false, "Message": "Order submitted", "Users": i });
                     }
@@ -372,48 +404,50 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     router.post('/replenish', (req, res) => {
 
-    }); 
+    });
 
     router.post("/products/update/:productID", (req, res) => {
         console.log("Updating inventory for product: " + req.params.productID);
         var query = "UPDATE products SET qtyInStock = qtyInStock + " + Number(req.body.quantity) + " WHERE productID = " + req.params.productID;
-       
+
         console.log(query);
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
             } else {
                 res.json({ "Error": false, "Message": "Inventory Updated for" + req.params.productID });
-         } });
+            }
         });
+    });
 
     router.post("/products/view/", (req, res) => {
         var query = "";
-        if(req.body.assignedBot == null && req.body.productID == null){
+        if (req.body.assignedBot == null && req.body.productID == null) {
             console.log("productID and assignedBot are null, returning without filtering results");
             query = "SELECT * FROM products";
         }
-        if(req.body.assignedBot != null) {
+        if (req.body.assignedBot != null) {
             console.log("querying for assignedBot::" + req.body.assignedBot);
             query = "SELECT * FROM products WHERE assignedBot = " + req.body.assignedBot;
         }
-        if(req.body.productID != null) {
+        if (req.body.productID != null) {
             console.log("querying for productId::" + req.body.productID);
             query = "SELECT * FROM products WHERE productID = \"" + req.body.productID + "\"";
         }
-        if(req.body.productID != null && req.body.assignedBot != null) {
+        if (req.body.productID != null && req.body.assignedBot != null) {
             console.log("querying for assignedBot::" + req.assignedBot + " alngwith querying for productId::" + req.body.productID);
             query = "SELECT * FROM products WHERE productID = \"" + req.body.productID + "\" AND assignedBot = " + req.body.assignedBot;
-        }   
+        }
         console.log(query);
         connection.query(query, function (err, rows) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
             } else {
-                res.json({ "Error": false, "Message": "Product list retrieved", "products": rows});
-         } });
+                res.json({ "Error": false, "Message": "Product list retrieved", "products": rows });
+            }
         });
-    
+    });
+
 
     /***************************************** test *****************************************************/
 

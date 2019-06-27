@@ -1,7 +1,7 @@
 -- MySQL Workbench Forward Engineering
 
-SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=1;
-SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=1;
+SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0;
+SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0;
 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION';
 
 -- -----------------------------------------------------
@@ -105,17 +105,19 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`botTrips`
+-- Table `iot`.`trips`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`botTrips` (
-  `botTripID` INT NOT NULL AUTO_INCREMENT,
+CREATE TABLE IF NOT EXISTS `iot`.`trips` (
+  `tripID` INT NOT NULL AUTO_INCREMENT,
   `botID` INT NOT NULL,
   `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `departureTime` TIMESTAMP NULL,
-  `arrivalTime` TIMESTAMP NULL,
-  `outbound` TINYINT NULL,
-  PRIMARY KEY (`botTripID`),
-  CONSTRAINT `FK_bots_botTrips`
+  `recArrivalTime` TIMESTAMP NULL,
+  `recDepartureTime` TIMESTAMP NULL,
+  `shipArrivalTime` TIMESTAMP NULL,
+  `shipDepartureTime` TIMESTAMP NULL,
+  `tripEndTime` TIMESTAMP NULL,
+  PRIMARY KEY (`tripID`),
+  CONSTRAINT `FK_bots_trips`
     FOREIGN KEY (`botID`)
     REFERENCES `iot`.`bots` (`botID`)
     ON DELETE CASCADE
@@ -124,25 +126,25 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`botTripOrders`
+-- Table `iot`.`tripOrderProducts`
 -- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`botTripOrders` (
-  `botTripID` INT NOT NULL,
+CREATE TABLE IF NOT EXISTS `iot`.`tripOrderProducts` (
+  `tripID` INT NOT NULL,
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOnTrip` TINYINT NOT NULL DEFAULT 0,
-  PRIMARY KEY (`botTripID`, `orderID`, `productID`),
-  CONSTRAINT `FK_orders_orderBotTrips`
+  PRIMARY KEY (`tripID`, `orderID`, `productID`),
+  CONSTRAINT `FK_orders_tripOrderProducts`
     FOREIGN KEY (`orderID`)
     REFERENCES `iot`.`orders` (`orderID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `FK_botTrips_orderBotTrips`
-    FOREIGN KEY (`botTripID`)
-    REFERENCES `iot`.`botTrips` (`botTripID`)
+  CONSTRAINT `FK_trips_tripOrderProducts`
+    FOREIGN KEY (`tripID`)
+    REFERENCES `iot`.`trips` (`tripID`)
     ON DELETE CASCADE
     ON UPDATE CASCADE,
-  CONSTRAINT `FK_products_orderPallets`
+  CONSTRAINT `FK_products_tripOrderProducts`
     FOREIGN KEY (`productID`)
     REFERENCES `iot`.`products` (`productID`)
     ON DELETE CASCADE
@@ -163,6 +165,11 @@ INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Blue', 11,
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Black', 12, 8);
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('Yellow', 12, 11);
 INSERT INTO products (products.name, assignedBot, maxBotQty) VALUES ('White', 12, 28);
+
+-- in order to manually create this database the users.csv must be placed into a specific 
+-- directory that is provided permissions by default for uploading csv's into a MySql database.
+-- The code below loads the users.csv from the required directory within my (Benjamin's) machine. 
+-- Run the following command to determine that directory: SHOW VARIABLES LIKE 'secure_file_priv';
 
 LOAD DATA INFILE 'C:/ProgramData/MySQL/MySQL Server 8.0/Uploads/users.csv'
 INTO TABLE customers 

@@ -52,7 +52,6 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
-
 -- -----------------------------------------------------
 -- Table `iot`.`bots`
 -- -----------------------------------------------------
@@ -61,9 +60,29 @@ CREATE TABLE IF NOT EXISTS `iot`.`bots` (
   `status` VARCHAR(20) NULL,
   `moving` TINYINT NOT NULL DEFAULT 0,
   `channel` TINYINT NOT NULL,
+  `tripID` INT NULL,
   PRIMARY KEY (`botID`))
 ENGINE = InnoDB;
 
+
+-- -----------------------------------------------------
+-- Table `iot`.`trips`
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS `iot`.`trips` (
+  `tripID` INT NOT NULL AUTO_INCREMENT,
+  `botID` INT NOT NULL,
+  `recArrivalTime` TIMESTAMP NULL,
+  `recDepartureTime` TIMESTAMP NULL,
+  `shipArrivalTime` TIMESTAMP NULL,
+  `shipDepartureTime` TIMESTAMP NULL,
+  `tripEndTime` TIMESTAMP NULL,
+  PRIMARY KEY (`tripID`),
+  CONSTRAINT `FK_bots_trips`
+    FOREIGN KEY (`botID`)
+    REFERENCES `iot`.`bots` (`botID`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
 
 -- -----------------------------------------------------
 -- Table `iot`.`products`
@@ -105,27 +124,6 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `iot`.`trips`
--- -----------------------------------------------------
-CREATE TABLE IF NOT EXISTS `iot`.`trips` (
-  `tripID` INT NOT NULL AUTO_INCREMENT,
-  `botID` INT NOT NULL,
-  `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `recArrivalTime` TIMESTAMP NULL,
-  `recDepartureTime` TIMESTAMP NULL,
-  `shipArrivalTime` TIMESTAMP NULL,
-  `shipDepartureTime` TIMESTAMP NULL,
-  `tripEndTime` TIMESTAMP NULL,
-  PRIMARY KEY (`tripID`),
-  CONSTRAINT `FK_bots_trips`
-    FOREIGN KEY (`botID`)
-    REFERENCES `iot`.`bots` (`botID`)
-    ON DELETE CASCADE
-    ON UPDATE CASCADE)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
 -- Table `iot`.`tripOrderProducts`
 -- -----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`tripOrderProducts` (
@@ -150,6 +148,13 @@ CREATE TABLE IF NOT EXISTS `iot`.`tripOrderProducts` (
     ON DELETE CASCADE
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
+
+ALTER TABLE `bots`  
+ADD CONSTRAINT `FK_trips_bots` 
+    FOREIGN KEY (`tripID`)
+    REFERENCES `iot`.`trips` (`tripID`)
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION;
 
 
 SET SQL_MODE=@OLD_SQL_MODE;

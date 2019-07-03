@@ -469,6 +469,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         })
     });
 
+    
     router.post("/trips/update/bot/arrival", (req, res) => {
         console.log("inserting bot position...")
         console.log("Station: " + req.body.station);
@@ -476,8 +477,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = "";
         var table = "";
         if(req.body.station == "RECV") {
-            query = "SET @TripID2 = (select max(??) from ??); update ?? set tripEndTime = ? where tripID = @TripID2";
-            table = ["tripID", "trips", "trips", utils.now()];
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set tripEndTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
+            table = ["tripID", "trips", "trips", utils.now(), req.body.bot];
             query = mysql.format(query, table);
             console.log(query);
             connection.query(query, function (err, rows, fields) {
@@ -500,8 +501,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
         }
         if(req.body.station == "SHIP") {
-            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipArrivalTime = ? where tripID = @TripID2";
-            table = ["tripID", "trips", "trips", utils.now()];
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipArrivalTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
+            table = ["tripID", "trips", "trips", utils.now(), req.body.bot];
             query = mysql.format(query, table);
             console.log(query);
             connection.query(query, function (err, rows, fields) {
@@ -521,8 +522,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = "";
         var table = "";
         if(req.body.station == "RECV") {
-            query = "SET @TripID2 = (select max(??) from ??); update ?? set recDepartureTime = ? where tripID = @TripID2";
-            table = ["tripID", "trips", "trips", utils.now()];
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set recDepartureTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
+            table = ["tripID", "trips", "trips", utils.now(), req.body.bot];
             query = mysql.format(query, table);
             console.log(query);
             connection.query(query, function (err, rows, fields) {
@@ -533,8 +534,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             });
         }
         if(req.body.station == "SHIP") {
-            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipDepartureTime = ? where tripID = @TripID2";
-            table = ["tripID", "trips", "trips", utils.now()];
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipDepartureTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
+            table = ["tripID", "trips", "trips", utils.now(), req.body.bot];
             query = mysql.format(query, table);
             console.log(query);
             connection.query(query, function (err, rows, fields) {

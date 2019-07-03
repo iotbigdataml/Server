@@ -407,6 +407,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     });
 
+    // UPDATE a product quantity
+    // req paramdter is the request object
+    // res parameter is the response object
     router.post("/products/update/:productID", (req, res) => {
         console.log("Updating inventory for product: " + req.params.productID);
         var query = "UPDATE products SET qtyInStock = qtyInStock + " + Number(req.body.quantity) + " WHERE productID = " + req.params.productID;
@@ -450,8 +453,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     });
 
 
-    /***************************************** test *****************************************************/
-
     router.get('/send-notification', (request, response) => {
         requests.get('http://172.17.0.1:5006/notify', (err, res, body) => {
             if (err) {
@@ -467,6 +468,85 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
         })
     });
+
+    router.post("/trips/update/bot/arrival", (req, res) => {
+        console.log("inserting bot position...")
+        console.log("Station: " + req.body.station);
+        console.log("Bot: " + req.body.bot);
+        var query = "";
+        var table = "";
+        if(req.body.station == "RECV") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set tripEndTime = ? where tripID = @TripID2";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+
+            query = "INSERT INTO ??(??,??) VALUES (?,?)";
+            table = ["trips", "botID", "recArrivalTime", req.body.bot, utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+
+        }
+        if(req.body.station == "SHIP") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipArrivalTime = ? where tripID = @TripID2";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+        }
+        res.json("success");
+    });
+
+    router.post("/trips/update/bot/departure", (req, res) => {
+        console.log("inserting bot position...")
+        console.log("Station: " + req.body.station);
+        console.log("Bot: " + req.body.bot);
+        var query = "";
+        var table = "";
+        if(req.body.station == "RECV") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set recDepartureTime = ? where tripID = @TripID2";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+        }
+        if(req.body.station == "SHIP") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set shipDepartureTime = ? where tripID = @TripID2";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+        }
+        res.json("success");
+    });
+
 
     async function insertPorts(posts) {
         for (let post of posts) {

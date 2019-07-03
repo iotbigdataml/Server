@@ -79,7 +79,8 @@ REST.prototype.connectMysql = function() {
         user     : 'root',
         password : 'password',  // replace with your MySQL password
         database : 'iot',
-        debug    :  false
+        debug    :  false,
+        multipleStatements : true
     });
 
     // Here make the connection to the ws_ordersinfo database

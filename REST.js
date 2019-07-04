@@ -548,6 +548,46 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         res.json("success");
     });
 
+    router.post("/trips/update/bot/maintenance/start", (req, res) => {
+        console.log("inserting bot position...")
+        console.log("Station: " + req.body.station);
+        var query = "";
+        var table = "";
+        if(req.body.station == "MAINTENANCE_START") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set maintenance_start = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1))";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+        }
+        res.json("success");
+    });
+
+    router.post("/trips/update/bot/maintenance/stop", (req, res) => {
+        console.log("inserting bot position...")
+        console.log("Station: " + req.body.station);
+        var query = "";
+        var table = "";
+        if(req.body.station == "MAINTENANCE_START") {
+            query = "SET @TripID2 = (select max(??) from ??); update ?? set maintenance_stop = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1))";
+            table = ["tripID", "trips", "trips", utils.now()];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                    return;
+                }
+            });
+        }
+        res.json("success");
+    });
+
 
     async function insertPorts(posts) {
         for (let post of posts) {

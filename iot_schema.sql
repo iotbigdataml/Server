@@ -65,6 +65,8 @@ CREATE TABLE IF NOT EXISTS `iot`.`trips` (
   `shipArrivalTime` TIMESTAMP NULL,
   `shipDepartureTime` TIMESTAMP NULL,
   `tripEndTime` TIMESTAMP NULL,
+  `maintenance_start` TIMESTAMP NULL,
+  `maintenance_stop` TIMESTAMP NULL,
   PRIMARY KEY (`tripID`),
   CONSTRAINT `FK_bots_trips`
     FOREIGN KEY (`botID`)

@@ -100,6 +100,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
   `qtyOrdered` TINYINT NOT NULL DEFAULT 0,
+  `qtyLoaded` TINYINT NOT NULL DEFAULT 0,
   PRIMARY KEY (`orderID`, `productID`),
   CONSTRAINT `FK_orders_orderProducts`
     FOREIGN KEY (`orderID`)

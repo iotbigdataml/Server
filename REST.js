@@ -589,6 +589,142 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     });
 
 
+
+
+
+
+    // functions and varaibles for the next API
+    function pr_query( sql, args ) {
+        return new Promise( ( resolve, reject ) => {
+            connection.query( sql, args, ( err, rows ) => {
+                if ( err )
+                    return reject( err );
+                resolve( rows );
+            } );
+        } );
+    }
+    var productOnTrip = [0,0,0];
+    var botProductID1 = [1,2,3];
+    var botProductID2 = [4,5,6];
+    var productIDs =[];
+    var maxBotQty = [];
+    var order_list =[];
+    
+
+
+
+    var operationsCompleted = 0;
+
+    function operation(n,tripID,order_list,order_count,tripOrderProduct) {
+        ++operationsCompleted;
+        console.log(operationsCompleted)
+        if (operationsCompleted === n) {
+            console.log('entered')
+            var temp_counter =0;
+            sql_query = 'Insert into tripOrderProducts (tripID, orderID, productID, qtyOnTrip) Values '
+            for (var i =0; i<order_count; i++){
+                for(var j =1; j< 4; j++ ){
+                    
+                    ++temp_counter;
+                    if (temp_counter === n){
+                        sql_query = sql_query + '(' + tripID +',' + order_list[i] + ',' + productIDs[j] + ',' + tripOrderProduct[i][j] +')'
+
+                    }
+                    else {
+                        sql_query = sql_query + '(' + tripID +',' + order_list[i] + ',' + productIDs[j] + ',' + tripOrderProduct[i][j] +'),'
+                    }
+                    
+                }
+            }
+            connection.query(sql_query, function (err, rows, fields) {
+                if (err) {
+                    console.log(err)
+                    console.log(sql_query)
+                }
+            });
+        }; 
+    }
+
+
+    function makeArray(w, h, val) {
+        var arr = [];
+        for(let i = 0; i < h; i++) {
+            arr[i] = [];
+            for(let j = 0; j < w; j++) {
+                arr[i][j] = val;
+            }
+        }
+        return arr;
+    }
+    router.post("/placeholder", (req, res) => {
+        var tripID= 1;
+        var tripID_query = "select tripID from bots where botID = ?"    
+        //connection.query(tripID_query,[req.body.botID], (errors, results, fields) => {
+        //    tripID = Number(results[0].tripID) + 2; // I think we should keep things simple and just go with even and odd tripIDs for each bot.
+        //})
+
+        if (req.body.botID == 11){
+            maxBotQty = [10,10,10];
+            productIDs = botProductID1;
+        }
+        else if (req.body.botID == 12){
+            productIDs = botProductID2;
+            maxBotQty = [];
+        }
+
+        var flag =[0,0,0];
+        var sql_query = 'select orderID from orders where `status` = "pending"'
+        pr_query( sql_query )
+		.then( rows => {
+            var order_count = rows.length
+            console.log(order_count)
+            console.log(rows)
+            if(rows.length!=0){			    
+                var tripOrderProduct = makeArray(order_count, 3, 0); // there are 3 kinds of products on a bot
+                var productNotLoaded = makeArray(order_count, 3, 0);
+                console.log('first' + tripOrderProduct )
+            
+                for(var i =0; i<order_count; i++){
+                    order_list.push(rows[i].orderID);
+
+                    for(var j =1; j< 4; j++ ){ //iterate over the correct productIDs)
+                        var sql_query_2 = "select qtyOrdered from orderProducts where orderID = ? and productID = ?"
+                        //console.log(sql_query_2)
+                        //console.log(order_list[i])
+                        //console.log(j)
+                        pr_query( sql_query_2, [order_list[i], j] )
+                        .then(rows => {
+                            if(rows.length!=0){
+                                //console.log(rows[0].qtyOrdered)                           //you now have quantity of each product for each orderID                   
+                                console.log('i ' +i +',j ' +j)
+                                tripOrderProduct[i][j] = Math.min(maxBotQty[j]- productOnTrip[j], rows[0].qtyOrdered)
+                                console.log(tripOrderProduct[i][j])    
+                                productOnTrip[j] = productOnTrip[j] + Math.min(maxBotQty[j]- productOnTrip[j], rows[0].qtyOrdered)
+                                if(maxBotQty[j]- productOnTrip[j] <= rows[0].qtyOrdered){
+                                    productNotLoaded[i][j] =  rows[0].qtyOrdered - (maxBotQty[j]- productOnTrip[j]);
+                                    flag[j] = 1;    
+                                    // if flag.sum() = 3, trip is done
+                                    if (flag[0]+flag[1]+flag[2] === 3){
+                                        operationsCompleted = 3*order_count - 1;
+                                    }
+                                } 
+                                
+                            }
+                            console.log('second' + tripOrderProduct)
+                            operation(3*order_count,tripID,order_list,order_count,tripOrderProduct);
+                        
+                        })
+                    }
+                }
+            }
+        })
+    })
+
+    
+
+
+
+
     async function insertPorts(posts) {
         for (let post of posts) {
             await connection.insert(post);

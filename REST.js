@@ -30,7 +30,7 @@ var utils = require("./utils.js");
 var requests = require('request');
 
 function REST_ROUTER(router, connection) {
-    var self = this;as
+    var self = this;
     self.handleRoutes(router, connection);
 }
 

@@ -1,4 +1,10 @@
 FROM mysql:5
+FROM python:3
+
+RUN pip install --upgrade pip && \
+    # pip install --no-cache-dir sys && \
+    pip install --no-cache-dir numpy && \
+    pip install --no-cache-dir pymysql
 
 COPY ./install.sh /install_scripts/install.sh
 RUN sh /install_scripts/install.sh && rm -rf /install_scripts

@@ -1,3 +1,4 @@
+import {PythonShell} from 'python-shell';
 
 /******************************************************************************************************************
 * File:REST.js
@@ -496,6 +497,44 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 if (err) {
                     res.json({ "Error": err, "Message": "Error executing MySQL query" });
                     return;
+                }
+            });
+
+            query = "UPDATE ?? SET ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?) WHERE ?? = ?";
+            table = ["bots", "tripID", "tripID", "trips", "botID", req.body.bot, "botID", req.body.bot];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query"});
+                    return;
+                } else {
+                    // try { 
+                    //         console.log("top: " + req.body.bot)
+                    //         var spawn = require("child_process").spawn;
+                    //         var pythonProcess = spawn('python', ["/iot-server/tripOrderProducts.py", req.body.bot])
+
+                    //         pythonProcess.on('error', function(err) {
+                    //             console.log(err)
+                    //         })
+                            
+                    //         pythonProcess.stdout.on('data', (data) => {
+                    //             console.log(data)
+                    //     });
+
+                    // } catch (err) {
+                    //     console.log(err);
+                    // }    
+                    
+                    let options = {
+                        args = [req.body.bot]
+                    }
+
+                    PythonShell.run('tripOrderProducts.py', options, function (err) {
+                        if (err) throw err;
+                        console.log('finished');
+                    });
+
                 }
             });
 

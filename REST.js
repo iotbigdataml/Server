@@ -509,6 +509,28 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     res.json({ "Error": err, "Message": "Error executing MySQL query"});
                     return;
                 } else {
+
+                    const path = require('path')
+                    const {spawn} = require('child_process')
+
+                    function runScript(){
+                        return spawn('python', [
+                        path.join(__dirname, 'tripOrderProducts.py')
+                        ]);
+                    }
+
+                    const subprocess = runScript()
+
+                    subprocess.stdout.on('data', (data) => {
+                        console.log(`data:${data}`);
+                    });
+                    subprocess.stderr.on('data', (data) => {
+                        console.log(`error:${data}`);
+                    });
+                    subprocess.stderr.on('close', () => {
+                        console.log("Closed");
+                    });
+
                     // try { 
                     //         console.log("top: " + req.body.bot)
                     //         var spawn = require("child_process").spawn;
@@ -526,14 +548,14 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     //     console.log(err);
                     // }    
                     
-                    let options = {
-                        args = [req.body.bot]
-                    }
+                    // let options = {
+                    //     args = [req.body.bot]
+                    // }
 
-                    PythonShell.run('tripOrderProducts.py', options, function (err) {
-                        if (err) throw err;
-                        console.log('finished');
-                    });
+                    // PythonShell.run('tripOrderProducts.py', options, function (err) {
+                    //     if (err) throw err;
+                    //     console.log('finished');
+                    // });
 
                 }
             });

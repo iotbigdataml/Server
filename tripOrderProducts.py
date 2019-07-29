@@ -3,6 +3,7 @@ import numpy as np
 import pymysql
 
 print("python script initialized")
+sys.stdout.flush()
 botID = sys.argv[1]
 conn = pymysql.connect(host='localhost',
                        user='root',
@@ -53,4 +54,3 @@ cur.execute(top_query)
 cur.execute(op_query)
 conn.commit()
 conn.close()
-sys.stdout.flush()

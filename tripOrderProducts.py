@@ -26,7 +26,7 @@ tripID = cur.fetchall()[0][0]
 op_rows = cur.execute("SELECT op.orderID, op.productID, op.qtyOrdered, op.qtyLoaded " +
                       "FROM orderProducts op JOIN orders o " +
                       "ON op.orderID = o.orderID " +
-                      "WHERE o.status != 'shipped'" +
+                      "WHERE o.status != 'shipped' and o.status != 'cancelled' " +
                       "AND op.qtyOrdered != op.qtyLoaded " +
                       "AND productID in (" + ",".join(
     [str(x) for x in productIDs]) + ")" + "ORDER BY op.orderID, op.productID")

@@ -67,7 +67,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     // by default, pending orders are returned
 
     router.get("/orders/:status?", function (req, res) {
-        console.log("Getting all database entries...");
+       // console.log("Getting all database entries...");
 
         if (req.params.status) {
             var query = `SELECT top.orderID, top.productID, top.qtyOnTrip, o.status, b.botID  
@@ -239,7 +239,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     // res parameter is the response object
 
     router.get("/filled", function (req, res) {
-        console.log("Getting all database entries...");
+        //console.log("Getting all database entries...");
         var query = "SELECT * FROM ?? WHERE ??=?";
         var table = ["orders", "status", "shipped"];
         query = mysql.format(query, table);
@@ -653,19 +653,22 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = "";
         //var table = "";
         
-        query = `UPDATE orders o SET status = 'loaded', loadTime =` + str(utils.now()) + 
-                `WHERE status = 'pending' and orderID in (SELECT distinct (orderID) 
+        query = `UPDATE orders o SET status = 'loaded', loadTime = ? 
+			WHERE status = 'pending' and orderID in (SELECT distinct (orderID) 
                                 FROM tripOrderProducts 
                                 WHERE tripID  = (select MAX(tripID) from tripOrderProducts))`;
+	table = [utils.now()];
+	query = mysql.format(query, table);
         console.log(query);
         connection.query(query, function (err, rows, fields) {
             if (err) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                 return;
             }
+	    else res.json("success");
         });
     
-        res.json("success");
+	  // res.json("success");
     });
 
     router.post("/fulfillOrder", (req, res) => {
@@ -677,7 +680,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 FROM tripOrderProducts top
                 JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID 
                 WHERE top.tripID = (select MAX(tripID) from tripOrderProducts)
-                group by op.orderID)
+                group by op.orderID) as temp
                 WHERE ordered = loaded`;
         //table = ["tripID", "trips", "trips", utils.now()];
         //query = mysql.format(query);
@@ -687,9 +690,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                 return;
             }
+	    else res.json({"orderIDs": rows});
         });
         
-        res.json({"orderIDs": rows});
     });
 
 

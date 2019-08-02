@@ -653,12 +653,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = "";
         //var table = "";
         
-        query = `UPDATE orders o SET status = 'loaded', loadTime = utils.now()
-                WHERE orderID in (SELECT distinct (orderID) 
+        query = `UPDATE orders o SET status = 'loaded', loadTime =` + str(utils.now()) + 
+                `WHERE status = 'pending' and orderID in (SELECT distinct (orderID) 
                                 FROM tripOrderProducts 
                                 WHERE tripID  = (select MAX(tripID) from tripOrderProducts))`;
-        //table = ["tripID", "trips", "trips", utils.now()];
-        //query = mysql.format(query);
         console.log(query);
         connection.query(query, function (err, rows, fields) {
             if (err) {

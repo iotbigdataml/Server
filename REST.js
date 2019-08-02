@@ -1,3 +1,4 @@
+//import {PythonShell} from 'python-shell';
 
 /******************************************************************************************************************
 * File:REST.js
@@ -69,10 +70,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         console.log("Getting all database entries...");
 
         if (req.params.status) {
-            var query = `SELECT o.orderID, top.productID, top.qtyOnTrip, o.status
+            var query = `SELECT top.orderID, top.productID, top.qtyOnTrip, o.status, b.botID  
                         FROM tripOrderProducts top  
                         JOIN orders o ON top.orderID = o.orderID 
-                        WHERE o.status = '${req.params.status}' and top.tripID = (select max(pd_id) from product);`;
+                        JOIN bots b on top.tripID = b.tripID;`;
         } else {
             var query = `SELECT op.orderID, p.productID, op.qtyOrdered, o.status 
                         FROM orderProducts op 
@@ -498,8 +499,65 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 }
             });
 
-            const spawn = require("child_process").spawn;
-            const pythonProcess = spawn('python',["tripOrderProducts.py", req.body.bot]);
+            query = "UPDATE ?? SET ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?) WHERE ?? = ?";
+            table = ["bots", "tripID", "tripID", "trips", "botID", req.body.bot, "botID", req.body.bot];
+            query = mysql.format(query, table);
+            console.log(query);
+            connection.query(query, function (err, rows, fields) {
+                if (err) {
+                    res.json({ "Error": err, "Message": "Error executing MySQL query"});
+                    return;
+                } else {
+
+                    const path = require('path')
+                    const {spawn} = require('child_process')
+
+                    function runScript(){
+                        return spawn('python3', [
+                        path.join(__dirname, 'tripOrderProducts.py')
+                        ,req.body.bot]);
+                    }
+
+                    const subprocess = runScript()
+
+                    subprocess.stdout.on('data', (data) => {
+                        console.log(`data:${data}`);
+                    });
+                    subprocess.stderr.on('data', (data) => {
+                        console.log(`error:${data}`);
+                    });
+                    subprocess.stderr.on('close', () => {
+                        console.log("Closed");
+                    });
+
+                    // try { 
+                    //         console.log("top: " + req.body.bot)
+                    //         var spawn = require("child_process").spawn;
+                    //         var pythonProcess = spawn('python', ["/iot-server/tripOrderProducts.py", req.body.bot])
+
+                    //         pythonProcess.on('error', function(err) {
+                    //             console.log(err)
+                    //         })
+                            
+                    //         pythonProcess.stdout.on('data', (data) => {
+                    //             console.log(data)
+                    //     });
+
+                    // } catch (err) {
+                    //     console.log(err);
+                    // }    
+                    
+                    // let options = {
+                    //     args = [req.body.bot]
+                    // }
+
+                    // PythonShell.run('tripOrderProducts.py', options, function (err) {
+                    //     if (err) throw err;
+                    //     console.log('finished');
+                    // });
+
+                }
+            });
 
         }
         if(req.body.station == "SHIP") {
@@ -591,10 +649,66 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     });
 
 
+    router.post("/loadTrip", (req, res) => {
+        var query = "";
+        //var table = "";
+        
+        query = `UPDATE orders o SET status = 'loaded', loadTime = utils.now()
+                WHERE orderID in (SELECT distinct (orderID) 
+                                FROM tripOrderProducts 
+                                WHERE tripID  = (select MAX(tripID) from tripOrderProducts))`;
+        //table = ["tripID", "trips", "trips", utils.now()];
+        //query = mysql.format(query);
+        console.log(query);
+        connection.query(query, function (err, rows, fields) {
+            if (err) {
+                res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                return;
+            }
+        });
+    
+        res.json("success");
+    });
+
+    router.post("/fulfillOrder", (req, res) => {
+        var query = "";
+        //var table = "";
+        query = `select distinct orderID
+                from(
+                SELECT DISTINCT(op.orderID), SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded
+                FROM tripOrderProducts top
+                JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID 
+                WHERE top.tripID = (select MAX(tripID) from tripOrderProducts)
+                group by op.orderID)
+                WHERE ordered = loaded`;
+        //table = ["tripID", "trips", "trips", utils.now()];
+        //query = mysql.format(query);
+        console.log(query);
+        connection.query(query, function (err, rows, fields) {
+            if (err) {
+                res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                return;
+            }
+        });
+        
+        res.json({"orderIDs": rows});
+    });
 
 
 
 
+    function makeArray(w, h, val) {
+        var arr = [];
+        for(let i = 0; i < h; i++) {
+            arr[i] = [];
+            for(let j = 0; j < w; j++) {
+                arr[i][j] = val;
+            }
+        }
+        return arr;
+    }
+   
+    
 
 
 

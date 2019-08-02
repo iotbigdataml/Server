@@ -690,7 +690,18 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                 return;
             }
-	    else res.json({"orderIDs": rows});
+	    else {
+            console.log(rows);
+            orders = [];
+
+            rows.forEach(row => {
+                orders.push(row);
+            });
+
+            res.json({
+                "orders": orders
+            });
+        }
         });
         
     });

@@ -9,15 +9,15 @@ SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='ONLY_FULL_GROUP_BY,STRICT_TRANS_TABLES,N
 -- -----------------------------------------------------
 DROP SCHEMA IF EXISTS `iot` ;
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Schema iot
 -- -----------------------------------------------------
 CREATE SCHEMA IF NOT EXISTS `iot` DEFAULT CHARACTER SET utf8 ;
 USE `iot` ;
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`customers`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `customerID` INT NOT NULL,
   `firstName` VARCHAR(45) NULL,
@@ -29,20 +29,23 @@ CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `maritalStatus` VARCHAR(10) NULL,
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
-  `zipcode` MEDIUMINT NULL,
+  `zipcode` INT NULL,
+  `age` TINYINT NULL,  
   PRIMARY KEY (`customerID`))
 ENGINE = InnoDB;
 
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`orders`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `orderID` INT NOT NULL AUTO_INCREMENT,
   `status` VARCHAR(10) NOT NULL DEFAULT 'pending',
   `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `loadTime` TIMESTAMP NULL,
   `fulfillTime` TIMESTAMP NULL,
+  `num_bots_to_fulfill` INT NOT NULL DEFAULT 1,
+  `bot_time_since_rec_arrival` INT NOT NULL DEFAULT 0,
   `customerID` INT NOT NULL,
   PRIMARY KEY (`orderID`),
   CONSTRAINT `FK_customers_orders`
@@ -52,9 +55,9 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
     ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`bots`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`bots` (
   `botID` INT NOT NULL,
   `status` VARCHAR(20) NULL,
@@ -65,9 +68,9 @@ CREATE TABLE IF NOT EXISTS `iot`.`bots` (
 ENGINE = InnoDB;
 
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`trips`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`trips` (
   `tripID` INT NOT NULL AUTO_INCREMENT,
   `botID` INT NOT NULL,
@@ -86,9 +89,9 @@ CREATE TABLE IF NOT EXISTS `iot`.`trips` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`products`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`products` (
   `productID` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(45) NOT NULL,
@@ -104,9 +107,9 @@ CREATE TABLE IF NOT EXISTS `iot`.`products` (
 ENGINE = InnoDB;
 
 
--- -----------------------------------------------------
+-----------------------------------------------------
 -- Table `iot`.`orderProducts`
--- -----------------------------------------------------
+-----------------------------------------------------
 CREATE TABLE IF NOT EXISTS `iot`.`orderProducts` (
   `orderID` INT NOT NULL,
   `productID` INT NOT NULL,
@@ -187,6 +190,6 @@ IGNORE 1 LINES
 	(
 		customerID, firstName, lastName, gender, @dob,
         householdIncome, householdCount, maritalStatus,
-        city, state, zipcode
+        city, state, zipcode, age
     )
 SET dob = STR_TO_DATE(@dob, '%d/%m/%Y');

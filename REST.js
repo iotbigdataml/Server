@@ -69,16 +69,16 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     router.get("/orders/:status?", function (req, res) {
        // console.log("Getting all database entries...");
 
-        if (req.params.status) {
+        if (req.params.status == "pending" ) {
             var query = `SELECT top.orderID, top.productID, top.qtyOnTrip, o.status, b.botID  
                         FROM tripOrderProducts top  
                         JOIN orders o ON top.orderID = o.orderID 
                         JOIN bots b on top.tripID = b.tripID;`;
-        } else {
-            var query = `SELECT op.orderID, p.productID, op.qtyOrdered, o.status 
-                        FROM orderProducts op 
-                        JOIN products p ON op.productID = p.productID 
-                        JOIN orders o ON op.orderID = o.orderID;`;
+        } else if (req.params.status == "loaded") {
+            var query = `SELECT top.orderID,top.productID,top.qtyOnTrip, o.status
+                        FROM tripOrderProducts top 
+                        JOIN orders o ON top.orderID = o.orderID
+			WHERE o.status = 'loaded';`;
         }
 
         connection.query(query, function (err, rows) {
@@ -676,11 +676,12 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         //var table = "";
         query = `select distinct orderID
                 from(
-                SELECT DISTINCT(op.orderID), SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded
+                SELECT op.orderID, SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded
                 FROM tripOrderProducts top
                 JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID
-		JOIN orders o on top.orderID = o.orderID 
-                WHERE top.tripID = (select MAX(tripID) from tripOrderProducts) and o.status = loaded
+		JOIN orders o on top.orderID = o.orderID
+		JOIN bots b on b.tripID = top.tripID 
+                WHERE o.status = 'loaded'
                 group by op.orderID) as temp
                 WHERE ordered = loaded`;
         //table = ["tripID", "trips", "trips", utils.now()];

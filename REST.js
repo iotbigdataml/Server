@@ -319,28 +319,24 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query;
         var table;
         if (num_bots_to_fulfill == 1) {
-            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?)";
-            table = ["trips", "tripID", "tripID", "trips", "botID", order_bots.values().next().value];
+            query = "SELECT (now() - recArrivalTime) AS time FROM trips WHERE tripID = (SELECT MAX(tripID) FROM trips WHERE botID = ?)"
+            table = [order_bots.values().next().value];
         } else {
-            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ??)";
-            table = ["trips", "tripID", "tripID", "trips"]
+            query = "SELECT (now() - recArrivalTime) AS time FROM trips WHERE tripID = (SELECT MAX(tripID) FROM trips)";
         }
 
         query = mysql.format(query, table);
         console.log(query);
-
         connection.query(query, function (err, rows, fields) {
             if (err) {
                 console.log(err)
                 res.json({ "Error": true, "Message": err });
             } else {
                 console.log(rows);
-                console.log(rows[0]);
-
                 if (rows[0]) {
-                    bot_time_since_rec_arrival = 45;
+                    bot_time_since_rec_arrival = rows[0].time;
                 } else {
-                    bot_time_since_rec_arrival = 45; // this value is arbitrary, would preferably use meaningful logic
+                    bot_time_since_rec_arrival = 30; // this value is arbitrary, would preferably use meaningful logic
                 }
 
                 var query = "INSERT INTO ?? (??,??,??,??) VALUES (?,?,?,?)";

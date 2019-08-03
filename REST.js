@@ -678,8 +678,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 from(
                 SELECT DISTINCT(op.orderID), SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded
                 FROM tripOrderProducts top
-                JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID 
-                WHERE top.tripID = (select MAX(tripID) from tripOrderProducts)
+                JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID
+		JOIN orders o on top.orderID = o.orderID 
+                WHERE top.tripID = (select MAX(tripID) from tripOrderProducts) and o.status = loaded
                 group by op.orderID) as temp
                 WHERE ordered = loaded`;
         //table = ["tripID", "trips", "trips", utils.now()];
@@ -695,9 +696,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             orders = [];
 
             rows.forEach(row => {
-                orders.push(row);
+                orders.push(row.orderID);
             });
-
+	    	
+	    console.log(orders)
             res.json({
                 "orders": orders
             });

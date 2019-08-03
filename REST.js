@@ -319,11 +319,11 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query;
         var table;
         if (num_bots_to_fulfill == 1) {
-            query = "SELECT (now() - ??) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?)";
-            table = ["recArrivalTime", "trips", "tripID", "tripID", "trips", "botID", order_bots.values().next().value];
+            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?)";
+            table = ["trips", "tripID", "tripID", "trips", "botID", order_bots.values().next().value];
         } else {
-            query = "SELECT (now() - ??) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ??)";
-            table = ["recArrivalTime", "trips", "tripID", "tripID", "trips"]
+            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ??)";
+            table = ["trips", "tripID", "tripID", "trips"]
         }
 
         query = mysql.format(query, table);
@@ -331,10 +331,14 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
         connection.query(query, function (err, rows, fields) {
             if (err) {
+                console.log(err)
                 res.json({ "Error": true, "Message": err });
             } else {
+                console.log(rows);
+                console.log(rows[0]);
+
                 if (rows[0]) {
-                    bot_time_since_rec_arrival = rows[0];
+                    bot_time_since_rec_arrival = 45;
                 } else {
                     bot_time_since_rec_arrival = 45; // this value is arbitrary, would preferably use meaningful logic
                 }
@@ -537,33 +541,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     subprocess.stderr.on('close', () => {
                         console.log("Closed");
                     });
-
-                    // try { 
-                    //         console.log("top: " + req.body.bot)
-                    //         var spawn = require("child_process").spawn;
-                    //         var pythonProcess = spawn('python', ["/iot-server/tripOrderProducts.py", req.body.bot])
-
-                    //         pythonProcess.on('error', function(err) {
-                    //             console.log(err)
-                    //         })
-                            
-                    //         pythonProcess.stdout.on('data', (data) => {
-                    //             console.log(data)
-                    //     });
-
-                    // } catch (err) {
-                    //     console.log(err);
-                    // }    
-                    
-                    // let options = {
-                    //     args = [req.body.bot]
-                    // }
-
-                    // PythonShell.run('tripOrderProducts.py', options, function (err) {
-                    //     if (err) throw err;
-                    //     console.log('finished');
-                    // });
-
                 }
             });
 

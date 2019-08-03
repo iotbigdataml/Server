@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS `iot`.`customers` (
   `maritalStatus` VARCHAR(10) NULL,
   `city` VARCHAR(45) NULL,
   `state` VARCHAR(45) NULL,
-  `zipcode` MEDIUMINT NULL,
+  `zipcode` INT NULL,
   PRIMARY KEY (`customerID`))
 ENGINE = InnoDB;
 
@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS `iot`.`orders` (
   `createTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `loadTime` TIMESTAMP NULL,
   `fulfillTime` TIMESTAMP NULL,
+  `num_bots_to_fulfill` INT NOT NULL DEFAULT 1,
+  `bot_time_since_rec_arrival` INT NOT NULL DEFAULT 0,
   `customerID` INT NOT NULL,
   PRIMARY KEY (`orderID`),
   CONSTRAINT `FK_customers_orders`

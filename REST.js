@@ -303,86 +303,98 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         // Use the simulation time to write database.
         console.log(req.body);
         var productIDs = [1, 3, 2, 5, 4, 6];
+        var product_to_bot_map = new Map([[1, 11], [3, 11], [2, 11], [5, 12], [4, 12], [6, 12]])
         var productQtys = [Number(req.body.red), Number(req.body.blue), Number(req.body.green), Number(req.body.yellow), Number(req.body.black), Number(req.body.white)];
+        var bot_time_since_rec_arrival
+        var num_bots_to_fulfill
 
-        var query = "INSERT INTO ??(??,??) VALUES (?,?)";
-        var table = ["orders", "createTime", "customerID", utils.now(), Number(req.body.customer)];
+        var order_bots = new Set([]);
+        for (i = 0; i < productQtys.length; i++) {
+            if (productQtys[i] > 0) {
+                order_bots.add(product_to_bot_map.get(productIDs[i]));
+            }
+        }
+        num_bots_to_fulfill = order_bots.size;
+
+        var query;
+        var table;
+        if (num_bots_to_fulfill == 1) {
+            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?)";
+            table = ["trips", "tripID", "tripID", "trips", "botID", order_bots.values().next().value];
+        } else {
+            query = "SELECT (now() - recArrivalTime) FROM ?? WHERE ?? = (SELECT MAX(??) FROM ??)";
+            table = ["trips", "tripID", "tripID", "trips"]
+        }
 
         query = mysql.format(query, table);
-
         console.log(query);
 
         connection.query(query, function (err, rows, fields) {
-            // if order insert
             if (err) {
+                console.log(err)
                 res.json({ "Error": true, "Message": err });
             } else {
+                console.log(rows);
+                console.log(rows[0]);
 
-                var query = "SELECT MAX(??) AS ?? FROM ??";
-                var table = ["orderID", "orderID", "orders"];
+                if (rows[0]) {
+                    bot_time_since_rec_arrival = 45;
+                } else {
+                    bot_time_since_rec_arrival = 45; // this value is arbitrary, would preferably use meaningful logic
+                }
 
+                var query = "INSERT INTO ?? (??,??,??,??) VALUES (?,?,?,?)";
+                var table = ["orders", "createTime", "num_bots_to_fulfill", "bot_time_since_rec_arrival", "customerID",
+                            utils.now(), num_bots_to_fulfill, bot_time_since_rec_arrival, Number(req.body.customer)];
                 query = mysql.format(query, table);
 
-                console.log(query);
-
-                connection.query(query, function (err, result, fields) {
-                    console.log(result);
-                    console.log(result[0]);
-                    console.log(result[0].orderID);
-
+                console.log(query)
+                connection.query(query, function (err, rows, fields) {
                     if (err) {
-                        res.json({ "Error": err, "Message": "Error executing MySQL query" });
-                    }
+                        console.log(err)
+                        res.json({ "Error": true, "Message": err });
+                    } else {
+                        var query = "SELECT MAX(??) AS ?? FROM ??";
+                        var table = ["orderID", "orderID", "orders"];
+                        query = mysql.format(query, table);
+                        
+                        console.log(query)
+                        connection.query(query, function (err, result, fields) {
+                            if (err) {
+                                res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                            } else {
 
-                    else {
+                                for (i = 0; i < productQtys.length; i++) {
 
-                        var i;
-                        for (i = 0; i < productQtys.length; i++) {
+                                    var posts = [];
 
-                            var posts = [];
+                                    if (productQtys[i] > 0) {
 
-                            if (productQtys[i] > 0) {
+                                        // posts.push("INSERT INTO orders (orderID, productID, quantity) VALUES (${rows})
 
-                                // posts.push("INSERT INTO orders (orderID, productID, quantity) VALUES (${rows})
+                                        var query = "INSERT INTO ??(??,??,??) VALUES (?,?,?)";
+                                        var table = ["orderProducts", "orderID", "productID", "qtyOrdered", result[0].orderID, productIDs[i], productQtys[i]];
 
-                                var query = "INSERT INTO ??(??,??,??) VALUES (?,?,?)";
-                                var table = ["orderProducts", "orderID", "productID", "qtyOrdered", result[0].orderID, productIDs[i], productQtys[i]];
+                                        query = mysql.format(query, table);
 
-                                query = mysql.format(query, table);
+                                        console.log(query);
 
-                                console.log(query);
-
-                                connection.query(query, function (err, rows, fields) {
-                                    if (err) {
-                                        res.json({ "Error": err, "Message": "Error executing MySQL query" });
-                                        return;
+                                        connection.query(query, function (err, rows, fields) {
+                                            if (err) {
+                                                res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                                                return;
+                                            }
+                                        });
                                     }
-                                });
-                            }
-                        }
-
-
-                        // requests(
-                        //     {
-                        //         method: 'POST',
-                        //         uri: 'http://127.0.0.1:5006/notify',
-                        //         body: {
-                        //             "orderID": result[0].orderID
-                        //         },
-                        //         json: true
-                        //     }, (err, res, body) => {
-                        //     if (err) {
-                        //         console.log(err);
-                        //     } else if (res.statusCode == 200) {
-                        //         console.log("Successfully notified rec system of order");
-                        //     }
-                        // });
-
-                        res.json({ "Error": false, "Message": "Order submitted", "Users": i });
+                                }
+                            }                   
+                        });
                     }
                 });
             }
         });
+        
+        res.json({ "Error": false, "Message": "Success"});
     });
 
     // DELETE for deleting a pending order as satisfied for the provided order ID
@@ -529,33 +541,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     subprocess.stderr.on('close', () => {
                         console.log("Closed");
                     });
-
-                    // try { 
-                    //         console.log("top: " + req.body.bot)
-                    //         var spawn = require("child_process").spawn;
-                    //         var pythonProcess = spawn('python', ["/iot-server/tripOrderProducts.py", req.body.bot])
-
-                    //         pythonProcess.on('error', function(err) {
-                    //             console.log(err)
-                    //         })
-                            
-                    //         pythonProcess.stdout.on('data', (data) => {
-                    //             console.log(data)
-                    //     });
-
-                    // } catch (err) {
-                    //     console.log(err);
-                    // }    
-                    
-                    // let options = {
-                    //     args = [req.body.bot]
-                    // }
-
-                    // PythonShell.run('tripOrderProducts.py', options, function (err) {
-                    //     if (err) throw err;
-                    //     console.log('finished');
-                    // });
-
                 }
             });
 

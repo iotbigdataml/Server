@@ -511,9 +511,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             Promise.all([endTrip, updateBotArrival, updateBotTrip])
             .then(() => {
                 const path = require('path')
-                const {spawn} = require('child_process')
+                const {spawnSync} = require('child_process')
                 function runScript(){
-                    return spawn('python3', [
+                    return spawnSync('python3', [
                     path.join(__dirname, 'tripOrderProducts.py')
                     ,req.body.bot]);
                 }
@@ -646,16 +646,12 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     router.post("/fulfillOrder", (req, res) => {
         var query = "";
         //var table = "";
-        query = `select distinct orderID
-                from(
-                SELECT op.orderID, SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded
-                FROM tripOrderProducts top
-                JOIN orderProducts op on op.orderID = top.orderID AND op.productID and top.productID = op.productID
-		JOIN orders o on top.orderID = o.orderID
-		JOIN bots b on b.tripID = top.tripID 
-                WHERE o.status = 'loaded'
-                group by op.orderID) as temp
-                WHERE ordered = loaded`;
+        query = `select distinct orderID 
+                from(SELECT op.orderID, SUM(op.qtyOrdered) as ordered, SUM(op.qtyLoaded) as loaded 
+                    FROM orderProducts op
+                    JOIN orders o on op.orderID = o.orderID 
+                    WHERE o.status = 'loaded' group by op.orderID) 
+                as temp WHERE ordered = loaded;`;
         //table = ["tripID", "trips", "trips", utils.now()];
         //query = mysql.format(query);
         console.log(query);
@@ -802,6 +798,13 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 resolve(rows);
             });
         });
+    }
+
+    var runScript = () => {
+        return new Promise((resolve, reject) => {
+            console.log("********************Running Script*******************");
+            
+        })
     }
 
     var sendTripData = () => {

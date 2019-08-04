@@ -291,7 +291,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 res.json({ "Error": false, "Message": "Order marked filled", "Users": rows });
                 
                 // sending data to kinesis stream of all successful orders
-                sendData(id);
+                sendData(req.params.id);
             }
         });
     });
@@ -490,60 +490,46 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         var query = "";
         var table = "";
         if(req.body.station == "RECV") {
-            query = "SET @TripID2 = (select max(??) from ??); update ?? set tripEndTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
-            table = ["tripID", "trips", "trips", utils.now(), req.body.bot];
-            query = mysql.format(query, table);
-            console.log(query);
-            connection.query(query, function (err, rows, fields) {
-                if (err) {
-                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
-                    return;
+            endQuery = "SET @TripID2 = (select max(??) from ??); update ?? set tripEndTime = ? where (tripID = @TripID2 OR tripID = (@TripID2 -1)) AND botID = ?";
+            endTable = ["tripID", "trips", "trips", utils.now(), req.body.bot];
+            endQuery = mysql.format(endQuery, endTable);
+            console.log(endQuery);
+            var endTrip = execute(endQuery);
+
+            arrivalQuery = "INSERT INTO ??(??,??) VALUES (?,?)";
+            arrivalTable = ["trips", "botID", "recArrivalTime", req.body.bot, utils.now()];
+            arrivalQuery = mysql.format(arrivalQuery, arrivalTable);
+            console.log(arrivalQuery);
+            var updateBotArrival = execute(arrivalQuery);
+
+            botTripQuery = "UPDATE ?? SET ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?) WHERE ?? = ?";
+            botTripTable = ["bots", "tripID", "tripID", "trips", "botID", req.body.bot, "botID", req.body.bot];
+            botTripQuery = mysql.format(botTripQuery, botTripTable);
+            console.log(botTripQuery);
+            var updateBotTrip = execute(botTripQuery);
+
+            Promise.all([endTrip, updateBotArrival, updateBotTrip])
+            .then(() => {
+                const path = require('path')
+                const {spawn} = require('child_process')
+                function runScript(){
+                    return spawn('python3', [
+                    path.join(__dirname, 'tripOrderProducts.py')
+                    ,req.body.bot]);
                 }
-            });
-
-            query = "INSERT INTO ??(??,??) VALUES (?,?)";
-            table = ["trips", "botID", "recArrivalTime", req.body.bot, utils.now()];
-            query = mysql.format(query, table);
-            console.log(query);
-            connection.query(query, function (err, rows, fields) {
-                if (err) {
-                    res.json({ "Error": err, "Message": "Error executing MySQL query" });
-                    return;
-                }
-            });
-
-            query = "UPDATE ?? SET ?? = (SELECT MAX(??) FROM ?? WHERE ?? = ?) WHERE ?? = ?";
-            table = ["bots", "tripID", "tripID", "trips", "botID", req.body.bot, "botID", req.body.bot];
-            query = mysql.format(query, table);
-            console.log(query);
-            connection.query(query, function (err, rows, fields) {
-                if (err) {
-                    res.json({ "Error": err, "Message": "Error executing MySQL query"});
-                    return;
-                } else {
-
-                    const path = require('path')
-                    const {spawn} = require('child_process')
-
-                    function runScript(){
-                        return spawn('python3', [
-                        path.join(__dirname, 'tripOrderProducts.py')
-                        ,req.body.bot]);
-                    }
-
-                    const subprocess = runScript()
-
-                    subprocess.stdout.on('data', (data) => {
-                        console.log(`data:${data}`);
-                    });
-                    subprocess.stderr.on('data', (data) => {
-                        console.log(`error:${data}`);
-                    });
-                    subprocess.stderr.on('close', () => {
-                        console.log("Closed");
-                    });
-                }
-            });
+                const subprocess = runScript()
+                subprocess.stdout.on('data', (data) => {
+                    console.log(`data:${data}`);
+                });
+                subprocess.stderr.on('data', (data) => {
+                    console.log(`error:${data}`);
+                });
+                subprocess.stderr.on('close', () => {
+                    console.log("Closed");
+                });
+            }).then(() => {
+                sendTripData();
+            })
 
         }
         if(req.body.station == "SHIP") {
@@ -733,6 +719,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
         execute(query)
         .then(rows => {
+
+            console.log("LoadTime " + rows[0].loadTime);
+            console.log("createTime " + rows[0].createTime);
+            console.log("fulfillTime " + rows[0].fulfillTime);
             let orderTimeToLoad = rows[0].loadTime - rows[0].createTime;
             let orderTimeToFulfill = rows[0].fulfillTime - rows[0].createTime;
             let numBotsToFulfill = rows[0].num_bots_to_fulfill;
@@ -741,46 +731,58 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
 
 
-            var qtyRed = execute("select qtyOrdered from orderProducts WHERE productID = 1");
-            var qtyGreen = execute("select qtyOrdered from orderProducts WHERE productID = 2");
-            var qtyBlue = execute("select qtyOrdered from orderProducts WHERE productID = 3");
-            var qtyBlack = execute("select qtyOrdered from orderProducts WHERE productID = 4");
-            var qtyYellow = execute("select qtyOrdered from orderProducts WHERE productID = 5");
-            var qtyWhite = execute("select qtyOrdered from orderProducts WHERE productID = 6");
+            var qtyRed = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 1 AND orderID = " + id);
+            var qtyGreen = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 2 AND orderID = " + id);
+            var qtyBlue = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 3 AND orderID = " + id);
+            var qtyBlack = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 4 AND orderID = " + id);
+            var qtyYellow = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 5 AND orderID = " + id);
+            var qtyWhite = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 6 AND orderID = " + id);
+            var orderNumProducts = execute("SELECT SUM(qtyOrdered) AS qtyOrdered FROM orderProducts WHERE orderID = " + id);
+            var orderNumDistinctProducts = execute("SELECT COUNT(DISTINCT productID) AS qtyOrdered FROM orderProducts WHERE orderID = " + id);
 
-            Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite]).then(values => {
+
+            Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts]).then(values => {
                 values.forEach(value => {
-                    data.push(value.length);
+                    if (value.length == 0) {
+                        data.push(0);
+                    } else {
+                        console.log("Value: ");
+                        console.log(value);
+                        data.push(value[0].qtyOrdered);
+                    }
                 });
-            }).then(function() {
+            }).then(() => {
                 stream(data);
             })
         });
     }
     var stream = (data) => {
-        // var url = "";
-
-        // requests(
-        //     {	
-        //         method: 'POST',	
-        //         uri: url,	
-        //         body: {	
-        //             // "orderID": result[0].orderID	
-        //         },	
-        //         json: true	
-        //     }, 
-        //     (err, res, body) => {	
-        //         if (err) {	
-        //             console.log(err);	
-        //         } else if (res.statusCode == 200) {	
-        //             console.log("Successfully notified rec system of order");	
-        //         }	
-        //     }
-        // );
 
         console.log("***********************In stream**************************");
         console.log("Data: ");
         console.log(data);
+
+        var url = "";
+
+        requests(
+            {	
+                method: 'POST',	
+                uri: url,	
+                body: {	
+                    // "orderID": result[0].orderID	
+                },	
+                json: true	
+            }, 
+            (err, res, body) => {	
+                if (err) {	
+                    console.log(err);	
+                } else if (res.statusCode == 200) {	
+                    console.log("Successfully notified rec system of order");	
+                }	
+            }
+        );
+
+
     }
 
 
@@ -800,9 +802,46 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         });
     }
 
-getLastRecord('name_record').then(function(rows) {
-    // now you have your rows, you can see if there are <20 of them
-}).catch((err) => setImmediate(() => { throw err; })); // Throw async to escape the promise chain
+    var sendTripData = () => {
+        console.log("************************In sendTripData******************************");
+        data = [];
+        var tripID;
+        execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID) FROM trips)")
+        .then(rows => {
+            tripID = Number(rows[0].tripID);
+            var tripTimeToLoad = rows[0].recDepartureTime - rows[0].recArrivalTime;
+            var tripTimeToDispatch = rows[0].shipArrivalTime - rows[0].recDepartureTime;
+            var tripTimeToUnload = rows[0].shipDepartureTime - rows[0].shipArrivalTime;
+            var tripTimeToReturn = rows[0].tripEndTime - rows[0].shipDepartureTime;
+            var tripTime = rows[0].tripEndTime - rows[0].recArrivalTime;
+            data.push(tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
+
+            var tripNumOrders = execute("SELECT COUNT(DISTINCT orderID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
+            var tripNumProducts = execute("SELECT SUM(qtyOnTrip) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
+            var tripNumDistinctProducts = execute("SELECT COUNT(DISTINCT productID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
+            var tripCapacityUtil = execute(`SELECT SUM(top.qtyOnTrip) / ( SELECT SUM(maxBotQty) FROM products 
+                                            WHERE products.productID IN (SELECT DISTINCT productID FROM tripOrderProducts 
+                                                WHERE tripID = ` + tripID + `)) 
+                                                AS result FROM tripOrderProducts top`);
+            
+            Promise.all([tripNumOrders, tripNumProducts, tripNumDistinctProducts, tripCapacityUtil])
+            .then(values => {
+                values.forEach(value => {
+                    if (value.length == 0) {
+                        data.push(0);
+                    } else {
+                        data.push(value[0].result);
+                    }
+                })
+            }).then(() => {
+                stream(data);
+            })
+        }).catch(err => {
+            console.log(err);
+        })
+
+
+    }
     /****************************************************************************************************/
 }
 // The next line just makes this module available... think of it as a kind package statement in Java

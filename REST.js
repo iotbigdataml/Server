@@ -752,24 +752,26 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     }
                 });
             }).then(() => {
-                stream(data);
+                stream(data, id, "stream_orders");
             })
         });
     }
-    var stream = (data) => {
+    var stream = (data, id, stream) => {
 
         console.log("***********************In stream**************************");
         console.log("Data: ");
         console.log(data);
 
-        var url = "";
+        var url = "http://a6b21d96.ngrok.io/sendtokinesis";
 
         requests(
             {	
                 method: 'POST',	
-                uri: url,	
+                uri: url,
                 body: {	
-                    // "orderID": result[0].orderID	
+                    "stream": stream,
+	                "id": id,
+	                "data": data
                 },	
                 json: true	
             }, 
@@ -777,7 +779,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 if (err) {	
                     console.log(err);	
                 } else if (res.statusCode == 200) {	
-                    console.log("Successfully notified rec system of order");	
+                    console.log("Successfully sent stream");	
                 }	
             }
         );
@@ -834,7 +836,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     }
                 })
             }).then(() => {
-                stream(data);
+                stream(data, tripID, "stream_trips");
             })
         }).catch(err => {
             console.log(err);

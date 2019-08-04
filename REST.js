@@ -289,6 +289,9 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 res.json({ "Error": true, "Message": "Error executing MySQL query" });
             } else {
                 res.json({ "Error": false, "Message": "Order marked filled", "Users": rows });
+                
+                // sending data to kinesis stream of all successful orders
+                sendData(id);
             }
         });
     });
@@ -380,6 +383,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                                                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                                                 return;
                                             }
+
+                                            /*
+                                            
+                                            */
                                         });
                                     }
                                 }
@@ -472,8 +479,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             }
 
             response.json("success");
-
-
         })
     });
 
@@ -717,6 +722,88 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
 
     /***************************************** test *****************************************************/
 
+
+    var sendData = (id) => {
+
+        console.log("************************In sendData******************************");
+        data = [];
+        var query = "select * from orders where orderID = ?";
+        var table = [id];
+        query = mysql.format(query, table);
+
+        execute(query)
+        .then(rows => {
+            let orderTimeToLoad = rows[0].loadTime - rows[0].createTime;
+            let orderTimeToFulfill = rows[0].fulfillTime - rows[0].createTime;
+            let numBotsToFulfill = rows[0].num_bots_to_fulfill;
+            let botTimeSinceRecArrival = rows[0].bot_time_since_rec_arrival;
+            data.push(orderTimeToLoad, orderTimeToFulfill, numBotsToFulfill, botTimeSinceRecArrival);
+
+
+
+            var qtyRed = execute("select qtyOrdered from orderProducts WHERE productID = 1");
+            var qtyGreen = execute("select qtyOrdered from orderProducts WHERE productID = 2");
+            var qtyBlue = execute("select qtyOrdered from orderProducts WHERE productID = 3");
+            var qtyBlack = execute("select qtyOrdered from orderProducts WHERE productID = 4");
+            var qtyYellow = execute("select qtyOrdered from orderProducts WHERE productID = 5");
+            var qtyWhite = execute("select qtyOrdered from orderProducts WHERE productID = 6");
+
+            Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite]).then(values => {
+                values.forEach(value => {
+                    data.push(value.length);
+                });
+            }).then(function() {
+                stream(data);
+            })
+        });
+    }
+    var stream = (data) => {
+        // var url = "";
+
+        // requests(
+        //     {	
+        //         method: 'POST',	
+        //         uri: url,	
+        //         body: {	
+        //             // "orderID": result[0].orderID	
+        //         },	
+        //         json: true	
+        //     }, 
+        //     (err, res, body) => {	
+        //         if (err) {	
+        //             console.log(err);	
+        //         } else if (res.statusCode == 200) {	
+        //             console.log("Successfully notified rec system of order");	
+        //         }	
+        //     }
+        // );
+
+        console.log("***********************In stream**************************");
+        console.log("Data: ");
+        console.log(data);
+    }
+
+
+    var execute = (query) => {
+        return new Promise(function(resolve, reject) {
+            // The Promise constructor should catch any errors thrown on
+            // this tick. Alternately, try/catch and reject(err) on catch.
+            console.log("********************In execute************************")
+            connection.query(query, function (err, rows, fields) {
+                // Call reject on error states,
+                // call resolve with results
+                if (err) {
+                    return reject(err);
+                }
+                resolve(rows);
+            });
+        });
+    }
+
+getLastRecord('name_record').then(function(rows) {
+    // now you have your rows, you can see if there are <20 of them
+}).catch((err) => setImmediate(() => { throw err; })); // Throw async to escape the promise chain
+    /****************************************************************************************************/
 }
 // The next line just makes this module available... think of it as a kind package statement in Java
 

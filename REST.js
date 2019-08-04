@@ -736,18 +736,19 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             let orderTimeToFulfill = rows[0].fulfillTime - rows[0].createTime;
             let numBotsToFulfill = rows[0].num_bots_to_fulfill;
             let botTimeSinceRecArrival = rows[0].bot_time_since_rec_arrival;
-            data.push(orderTimeToLoad, orderTimeToFulfill, numBotsToFulfill, botTimeSinceRecArrival);
+            data.push(id, orderTimeToLoad, orderTimeToFulfill, numBotsToFulfill, botTimeSinceRecArrival);
 
 
 
-            var qtyRed = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 1 AND orderID = " + id);
-            var qtyGreen = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 2 AND orderID = " + id);
-            var qtyBlue = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 3 AND orderID = " + id);
-            var qtyBlack = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 4 AND orderID = " + id);
-            var qtyYellow = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 5 AND orderID = " + id);
-            var qtyWhite = execute("SELECT qtyOrdered FROM orderProducts WHERE productID = 6 AND orderID = " + id);
-            var orderNumProducts = execute("SELECT SUM(qtyOrdered) AS qtyOrdered FROM orderProducts WHERE orderID = " + id);
-            var orderNumDistinctProducts = execute("SELECT COUNT(DISTINCT productID) AS qtyOrdered FROM orderProducts WHERE orderID = " + id);
+            var qtyRed = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 1 AND orderID = " + id);
+            var qtyGreen = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 2 AND orderID = " + id);
+            var qtyBlue = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 3 AND orderID = " + id);
+            var qtyBlack = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 4 AND orderID = " + id);
+            var qtyYellow = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 5 AND orderID = " + id);
+            var qtyWhite = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 6 AND orderID = " + id);
+            var orderNumProducts = execute("SELECT SUM(qtyOrdered) AS result FROM orderProducts WHERE orderID = " + id);
+            var orderNumDistinctProducts = execute("SELECT COUNT(DISTINCT productID) AS result FROM orderProducts WHERE orderID = " + id);
+            var customerID = execute("SELECT customerID AS result FROM orders WHERE orderID = " + id);
 
 
             Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts]).then(values => {
@@ -757,7 +758,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     } else {
                         console.log("Value: ");
                         console.log(value);
-                        data.push(value[0].qtyOrdered);
+                        data.push(value[0].result);
                     }
                 });
             }).then(() => {
@@ -765,6 +766,8 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             })
         });
     }
+
+
     var stream = (data, id, stream) => {
 
         console.log("***********************In stream**************************");
@@ -820,6 +823,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID)-2 FROM trips)")
         .then(rows => {
             tripID = Number(rows[0].tripID);
+            data.push(tripID);
             var tripTimeToLoad = rows.length > 0 ? rows[0].recDepartureTime - rows[0].recArrivalTime : 0;
             var tripTimeToDispatch = rows.length > 0 ? rows[0].shipArrivalTime - rows[0].recDepartureTime : 0;
             var tripTimeToUnload = rows.length > 0 ? rows[0].shipDepartureTime - rows[0].shipArrivalTime : 0;

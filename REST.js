@@ -507,16 +507,18 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             botTripQuery = mysql.format(botTripQuery, botTripTable);
             console.log(botTripQuery);
             var updateBotTrip = execute(botTripQuery);
+            var wait = 
 
             Promise.all([endTrip, updateBotArrival, updateBotTrip])
             .then(() => {
                 const path = require('path')
-                const {spawnSync} = require('child_process')
+                const {spawn} = require('child_process')
                 function runScript(){
-                    return spawnSync('python3', [
+                    return spawn('python3', [
                     path.join(__dirname, 'tripOrderProducts.py')
                     ,req.body.bot]);
                 }
+
                 const subprocess = runScript()
                 subprocess.stdout.on('data', (data) => {
                     console.log(`data:${data}`);
@@ -527,7 +529,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 subprocess.stderr.on('close', () => {
                     console.log("Closed");
                 });
-            }).then(() => {
+            }).then(async function() {
+                console.log(1)
+                // await sleep(1000);
+                console.log(2)
                 sendTripData();
             })
 
@@ -705,6 +710,14 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     /***************************************** test *****************************************************/
 
 
+     function sleep(ms){
+         return new Promise(resolve=>{
+             setTimeout(resolve,ms)
+         })
+     }
+
+
+
     var sendData = (id) => {
 
         console.log("************************In sendData******************************");
@@ -767,7 +780,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 body: {	
                     "stream": stream,
 	                "id": id,
-	                "data": data
+	                "data": data.join()
                 },	
                 json: true	
             }, 
@@ -800,25 +813,18 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         });
     }
 
-    var runScript = () => {
-        return new Promise((resolve, reject) => {
-            console.log("********************Running Script*******************");
-            
-        })
-    }
-
     var sendTripData = () => {
         console.log("************************In sendTripData******************************");
         data = [];
         var tripID;
-        execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID) FROM trips)")
+        execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID)-2 FROM trips)")
         .then(rows => {
             tripID = Number(rows[0].tripID);
-            var tripTimeToLoad = rows[0].recDepartureTime - rows[0].recArrivalTime;
-            var tripTimeToDispatch = rows[0].shipArrivalTime - rows[0].recDepartureTime;
-            var tripTimeToUnload = rows[0].shipDepartureTime - rows[0].shipArrivalTime;
-            var tripTimeToReturn = rows[0].tripEndTime - rows[0].shipDepartureTime;
-            var tripTime = rows[0].tripEndTime - rows[0].recArrivalTime;
+            var tripTimeToLoad = rows.length > 0 ? rows[0].recDepartureTime - rows[0].recArrivalTime : 0;
+            var tripTimeToDispatch = rows.length > 0 ? rows[0].shipArrivalTime - rows[0].recDepartureTime : 0;
+            var tripTimeToUnload = rows.length > 0 ? rows[0].shipDepartureTime - rows[0].shipArrivalTime : 0;
+            var tripTimeToReturn = rows.length > 0 ? rows[0].tripEndTime - rows[0].shipDepartureTime : 0;
+            var tripTime = rows.length > 0 ? rows[0].tripEndTime - rows[0].recArrivalTime : 0;
             data.push(tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
 
             var tripNumOrders = execute("SELECT COUNT(DISTINCT orderID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);

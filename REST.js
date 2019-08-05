@@ -710,7 +710,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 });
             }
         });
-
+    });
         async function insertPorts(posts) {
             for (let post of posts) {
                 await connection.insert(post);

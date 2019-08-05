@@ -383,10 +383,6 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                                                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                                                 return;
                                             }
-
-                                            /*
-                                            
-                                            */
                                         });
                                     }
                                 }
@@ -862,6 +858,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                         })
                 }).catch(err => {
                     console.log(err);
+
                 })
 
 

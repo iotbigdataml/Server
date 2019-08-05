@@ -683,7 +683,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
     });
 
 
-    router.post("/triputilization", (req, res) => {
+    router.get("/triputilization", (req, res) => {
         var query = "";
         query = `SELECT SUM(top.qtyOnTrip)/ temp.capacity as utilization 
                 FROM tripOrderProducts top JOIN trips t on top.tripID = t.tripID 

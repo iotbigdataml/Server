@@ -639,7 +639,23 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                 res.json({ "Error": err, "Message": "Error executing MySQL query" });
                 return;
             }
-            else res.json("success");
+            else {
+                query = `CREATE or REPLACE VIEW myview as select productID, sum(qtyOnTrip) as qtyOnTrip 
+                from tripOrderProducts
+                where tripID = (select MAX(tripID) from tripOrderProducts) 
+                group by productID; UPDATE products 
+                join myview on products.productID = myview.productID 
+                SET qtyInStock = qtyInStock - myview.qtyOnTrip`;
+
+                connection.query(query, (err, rows, fields) => {
+                    if (err) {
+                        res.json({ "Error": err, "Message": "Error executing MySQL query" });
+                        return;
+                    } else {
+                        res.json({ "Error": false, "Message": "Success" });
+                    }
+                })
+            };
         });
 
         // res.json("success");
@@ -782,7 +798,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             console.log("Data: ");
             console.log(data);
 
-            var url = "http://a6b21d96.ngrok.io/sendtokinesis";
+            var url = "http://ec2-3-81-135-173.compute-1.amazonaws.com:5006/sendtokinesis";
 
             requests(
                 {
@@ -831,8 +847,10 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID)-2 FROM trips)")
                 .then(rows => {
                     tripID = Number(rows[0].tripID);
+
                     var tripStartTimestamp = rows.length > 0 ? dateFormat(rows[0].recArrivalTime, "yyyy-mm-dd h:MM:ss") : 0;
                     var tripEndTimestamp = rows.length > 0 ? dateFormat(rows[0].tripEndTime, "yyyy-mm-dd h:MM:ss") : 0;
+
                     var tripTimeToLoad = rows.length > 0 ? rows[0].recDepartureTime - rows[0].recArrivalTime : 0;
                     var tripTimeToDispatch = rows.length > 0 ? rows[0].shipArrivalTime - rows[0].recDepartureTime : 0;
                     var tripTimeToUnload = rows.length > 0 ? rows[0].shipDepartureTime - rows[0].shipArrivalTime : 0;

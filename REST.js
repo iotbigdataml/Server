@@ -738,14 +738,15 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     console.log("LoadTime " + rows[0].loadTime);
                     console.log("createTime " + rows[0].createTime);
                     console.log("fulfillTime " + rows[0].fulfillTime);
+                    let orderCreateTimestamp = rows[0].createTime;
+                    let orderFulfillTimestamp = rows[0].fulfillTime;
                     let orderTimeToLoad = rows[0].loadTime - rows[0].createTime;
                     let orderTimeToFulfill = rows[0].fulfillTime - rows[0].createTime;
                     let numBotsToFulfill = rows[0].num_bots_to_fulfill;
                     let botTimeSinceRecArrival = rows[0].bot_time_since_rec_arrival;
-                    data.push(id, orderTimeToLoad, orderTimeToFulfill, numBotsToFulfill, botTimeSinceRecArrival);
+                    data.push(id, orderCreateTimestamp, orderFulfillTimestamp, orderTimeToLoad, orderTimeToFulfill, numBotsToFulfill, botTimeSinceRecArrival);
 
-
-
+                    var orderTimeSinceLastOrder = execute("SELECT createTime - (SELECT createTime FROM orders WHERE orderID = " + id + " - 1) FROM orders WHERE orderID = " + orderID);
                     var qtyRed = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 1 AND orderID = " + id);
                     var qtyGreen = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 2 AND orderID = " + id);
                     var qtyBlue = execute("SELECT qtyOrdered AS result FROM orderProducts WHERE productID = 3 AND orderID = " + id);
@@ -757,7 +758,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     var customerID = execute("SELECT customerID AS result FROM orders WHERE orderID = " + id);
 
 
-                    Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts, customerID]).then(values => {
+                    Promise.all([orderTimeSinceLastOrder, qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts, customerID]).then(values => {
                         values.forEach(value => {
                             if (value.length == 0) {
                                 data.push(0);
@@ -829,20 +830,23 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID)-2 FROM trips)")
                 .then(rows => {
                     tripID = Number(rows[0].tripID);
+                    var tripStartTimestamp = rows.length > 0 ? rows[0].recArrivalTime : 0;
+                    var tripEndTimestamp = rows.length > 0 ? rows[0].tripEndTime : 0;
                     var tripTimeToLoad = rows.length > 0 ? rows[0].recDepartureTime - rows[0].recArrivalTime : 0;
                     var tripTimeToDispatch = rows.length > 0 ? rows[0].shipArrivalTime - rows[0].recDepartureTime : 0;
                     var tripTimeToUnload = rows.length > 0 ? rows[0].shipDepartureTime - rows[0].shipArrivalTime : 0;
                     var tripTimeToReturn = rows.length > 0 ? rows[0].tripEndTime - rows[0].shipDepartureTime : 0;
                     var tripTime = rows.length > 0 ? rows[0].tripEndTime - rows[0].recArrivalTime : 0;
-                    data.push(tripID, tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
+                    data.push(tripID, tripStartTimestamp, tripEndTimestamp, tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
 
                     var tripNumOrders = execute("SELECT COUNT(DISTINCT orderID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
                     var tripNumProducts = execute("SELECT SUM(qtyOnTrip) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
                     var tripNumDistinctProducts = execute("SELECT COUNT(DISTINCT productID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
-                    var tripCapacityUtil = execute(`SELECT SUM(top.qtyOnTrip) / ( SELECT SUM(maxBotQty) FROM products 
-                                            WHERE products.productID IN (SELECT DISTINCT productID FROM tripOrderProducts 
-                                                WHERE tripID = ` + tripID + `)) 
-                                                AS result FROM tripOrderProducts top`);
+                    var tripCapacityUtil = execute(`SELECT SUM(top.qtyOnTrip)/temp.capacity
+                                                    FROM tripOrderProducts top
+                                                    JOIN trips t on top.tripID = t.tripID
+                                                    JOIN (SELECT assignedBot, sum(maxBotQty) as capacity from products group by assignedBot) temp on temp.assignedBot = t.botID
+                                                    WHERE t.tripEndTime is not NULL AND top.tripID = ` + tripID);
 
                     Promise.all([tripNumOrders, tripNumProducts, tripNumDistinctProducts, tripCapacityUtil])
                         .then(values => {

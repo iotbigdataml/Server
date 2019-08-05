@@ -751,7 +751,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             var customerID = execute("SELECT customerID AS result FROM orders WHERE orderID = " + id);
 
 
-            Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts]).then(values => {
+            Promise.all([qtyRed, qtyGreen, qtyBlue, qtyBlack, qtyYellow, qtyWhite, orderNumProducts, orderNumDistinctProducts, customerID]).then(values => {
                 values.forEach(value => {
                     if (value.length == 0) {
                         data.push(0);
@@ -823,13 +823,12 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
         execute("SELECT * FROM trips WHERE tripID = (SELECT MAX(tripID)-2 FROM trips)")
         .then(rows => {
             tripID = Number(rows[0].tripID);
-            data.push(tripID);
             var tripTimeToLoad = rows.length > 0 ? rows[0].recDepartureTime - rows[0].recArrivalTime : 0;
             var tripTimeToDispatch = rows.length > 0 ? rows[0].shipArrivalTime - rows[0].recDepartureTime : 0;
             var tripTimeToUnload = rows.length > 0 ? rows[0].shipDepartureTime - rows[0].shipArrivalTime : 0;
             var tripTimeToReturn = rows.length > 0 ? rows[0].tripEndTime - rows[0].shipDepartureTime : 0;
             var tripTime = rows.length > 0 ? rows[0].tripEndTime - rows[0].recArrivalTime : 0;
-            data.push(tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
+            data.push(tripID, tripTimeToLoad, tripTimeToDispatch, tripTimeToUnload, tripTimeToReturn, tripTime);
 
             var tripNumOrders = execute("SELECT COUNT(DISTINCT orderID) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
             var tripNumProducts = execute("SELECT SUM(qtyOnTrip) AS result FROM tripOrderProducts WHERE tripID = " + tripID);
@@ -842,7 +841,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
             Promise.all([tripNumOrders, tripNumProducts, tripNumDistinctProducts, tripCapacityUtil])
             .then(values => {
                 values.forEach(value => {
-                    if (value.length == 0) {
+                    if (value.length == 0 || value[0].result == null || value == 'null') {
                         data.push(0);
                     } else {
                         data.push(value[0].result);

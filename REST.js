@@ -704,7 +704,7 @@ REST_ROUTER.prototype.handleRoutes = function (router, connection) {
                     utilization.push(row.utilization);
                 });
 
-                console.log(orders)
+                console.log(utilization)
                 res.json({
                     "utilization": utilization
                 });
